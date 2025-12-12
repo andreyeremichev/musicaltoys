@@ -1,0 +1,86 @@
+// app/cards/page.tsx
+import type { Metadata } from "next";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Cards – MusicalToys",
+  description:
+    "Create musical postcards, stave cards and musical business cards. Turn moments and details into musical keepsakes you can share.",
+};
+
+export default function CardsPage() {
+  return (
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="mx-auto w-full max-w-6xl px-4 pb-12 pt-6 md:px-8 md:pb-16 md:pt-10">
+        <header className="mb-6 md:mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            Cards
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-slate-600">
+            Turn your moments, wishes and details into musical cards. Pick a
+            format, choose a look, and create something shareable.
+          </p>
+        </header>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          {/* Postcards */}
+          <Link
+            href="/cards/postcard"
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-teal-400/70 hover:shadow-md transition"
+          >
+            <p className="text-[10px] font-semibold text-teal-600 mb-1 uppercase tracking-wide">
+              Dates & wishes
+            </p>
+            <h2 className="text-sm font-semibold">Musical Postcards</h2>
+            <p className="mt-1 text-xs text-slate-600">
+              Classic postcard layouts where your date and message play as
+              harmony.
+            </p>
+          </Link>
+
+          {/* Stave cards */}
+          <Link
+            href="/cards/stave"
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-pink-400/70 hover:shadow-md transition"
+          >
+            <p className="text-[10px] font-semibold text-pink-600 mb-1 uppercase tracking-wide">
+              Text as notation
+            </p>
+            <h2 className="text-sm font-semibold">Stave Cards</h2>
+            <p className="mt-1 text-xs text-slate-600">
+              Your words shown as real musical notation, layered over themed
+              backgrounds.
+            </p>
+          </Link>
+
+          {/* Business cards */}
+          <Link
+            href="/cards/business"
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-amber-300/70 hover:shadow-md transition"
+          >
+            <p className="text-[10px] font-semibold text-amber-600 mb-1 uppercase tracking-wide">
+              Tiny sound signatures
+            </p>
+            <h2 className="text-sm font-semibold">Musical Business Cards</h2>
+            <p className="mt-1 text-xs text-slate-600">
+              Your name, phone and email turned into a small soundtrack you can
+              share.
+            </p>
+          </Link>
+        </section>
+
+        <section className="mt-10 border-t border-slate-200 pt-6">
+          <h2 className="text-sm font-semibold tracking-tight">
+            What are musical cards?
+          </h2>
+          <p className="mt-2 text-sm text-slate-700 max-w-3xl">
+            Musical cards are postcard-like designs and layouts that include
+            both visuals and sound. They are made for birthdays, holidays,
+            milestones and introductions. You can download them and share them
+            anywhere you like.
+          </p>
+        </section>
+      </div>
+    </main>
+  );
+}

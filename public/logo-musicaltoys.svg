@@ -1,0 +1,38 @@
+<svg viewBox="0 0 320 80" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mtTitle mtDesc">
+  <title id="mtTitle">MusicalToys</title>
+  <desc id="mtDesc">Logo for MusicalToys: a play button with a note and the word MusicalToys</desc>
+
+  <!-- Icon circle -->
+  <defs>
+    <linearGradient id="mtGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4DF2C3"/>
+      <stop offset="100%" stop-color="#FF5FD1"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="36" cy="40" r="24" fill="url(#mtGrad)"/>
+
+  <!-- Play triangle -->
+  <polygon
+    points="30,28 46,40 30,52"
+    fill="#050816"
+    opacity="0.9"
+  />
+
+  <!-- Small note stem + head (overlaying the play button) -->
+  <rect x="40" y="26" width="2.4" height="14" rx="1.2" fill="#050816" opacity="0.9"/>
+  <circle cx="44.5" cy="42" r="4.2" fill="#050816" opacity="0.9"/>
+
+  <!-- Wordmark -->
+  <text
+    x="76"
+    y="44"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif"
+    font-size="22"
+    letter-spacing="0.03em"
+    fill="#F9FAFB"
+  >
+    <tspan font-weight="500">Musical</tspan>
+    <tspan dx="6" font-weight="700">Toys</tspan>
+  </text>
+</svg>
