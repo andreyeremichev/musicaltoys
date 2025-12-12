@@ -68,19 +68,24 @@ function labelPlacement(i: number, p: Pt) {
   const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
   const ux = Math.cos(a),
     uy = Math.sin(a);
+
   const x = p.x + 3.0 * ux,
     y = p.y + 3.0 * uy;
+
   const ax = Math.abs(ux),
     ay = Math.abs(uy);
+
   let anchor: "start" | "middle" | "end" = "middle";
-  let baseline: "baseline" | "middle" | "hanging" = "middle";
+  let baseline: "alphabetic" | "middle" | "hanging" = "middle";
+
   if (ax >= ay) {
     anchor = ux > 0 ? "start" : "end";
     baseline = "middle";
   } else {
     anchor = "middle";
-    baseline = uy > 0 ? "hanging" : "baseline";
+    baseline = uy > 0 ? "hanging" : "alphabetic";
   }
+
   return { x: fmt(x), y: fmt(y), anchor, baseline };
 }
 function pathFromNodes(indices: number[]): string {

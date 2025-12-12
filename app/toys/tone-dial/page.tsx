@@ -53,13 +53,13 @@ function labelPlacement(i: number, p: Pt) {
   const ax = Math.abs(ux),
     ay = Math.abs(uy);
   let anchor: "start" | "middle" | "end" = "middle";
-  let baseline: "baseline" | "middle" | "hanging" = "middle";
+  let baseline: "alphabetic" | "middle" | "hanging" = "middle";
   if (ax >= ay) {
     anchor = ux > 0 ? "start" : "end";
     baseline = "middle";
   } else {
     anchor = "middle";
-    baseline = uy > 0 ? "hanging" : "baseline";
+    baseline = uy > 0 ? "hanging" : "alphabetic";
   }
   return { x: fmt(x), y: fmt(y), anchor, baseline };
 }

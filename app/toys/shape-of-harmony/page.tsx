@@ -55,9 +55,9 @@ function labelPlacement(i: number, p: Pt) {
   const x = p.x + 3.0 * ux, y = p.y + 3.0 * uy;
   const ax = Math.abs(ux), ay = Math.abs(uy);
   let anchor: "start"|"middle"|"end" = "middle";
-  let baseline: "baseline"|"middle"|"hanging" = "middle";
+  let baseline: "middle" | "hanging" | "alphabetic" = "middle";
   if (ax >= ay) { anchor = ux > 0 ? "start" : "end"; baseline = "middle"; }
-  else { anchor = "middle"; baseline = uy > 0 ? "hanging" : "baseline"; }
+  else { anchor = "middle"; baseline = uy > 0 ? "hanging" : "alphabetic"; }
   return { x: fmt(x), y: fmt(y), anchor, baseline };
 }
 function pathFromIndices(indices: number[]): string {
