@@ -402,6 +402,9 @@ function TextToTonePageInner() {
   // helper line under the stave (persistent during playback)
   const [playedNames, setPlayedNames] = useState<string[]>([]);
 
+  // helper toggle ("H") — default OFF
+const [helperOn, setHelperOn] = useState(false);
+
   // play state
   const [isPlaying, setIsPlaying] = useState(false);
   const isPlayingRef = useRef(false);
@@ -1471,8 +1474,8 @@ function drawNowPlayingLabel(nowSec: number) {
           drawW * SCALE,
           drawH * SCALE
         );
-        // export helper label (now playing)
-      drawNowPlayingLabel(nowSec);
+        // export helper label (now playing) — only when helper is ON
+if (helperOn) drawNowPlayingLabel(nowSec);
       }
 
       // start recording
@@ -1580,7 +1583,7 @@ function drawNowPlayingLabel(nowSec: number) {
         alert("Could not prepare video. Please try again.");
       } catch {}
     }
-  }, [phrase, mode]);
+  }, [phrase, mode, helperOn]);
 
   /* =========================
      Share modal state
@@ -1745,35 +1748,37 @@ function drawNowPlayingLabel(nowSec: number) {
                 style={{ width: "100%", minHeight: 260, display: "block" }}
               />
               {/* Helper line: notes (letters) & chords (Roman numerals), one row */}
-<div
-  style={{
-    marginTop: 6,
-    padding: "2px 4px",
-    fontSize: 12,            // tuned to fit ~20 items in one row
-    lineHeight: 1.2,
-    color: mode === "ipa" ? "#DCE6FF" : theme.muted,
-    opacity: 1,
-    fontWeight: 400,           // explicit normal weight
-    textTransform: "lowercase", // force letters to appear as a b c d e f g
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    letterSpacing: 0.2,
-  }}
-  aria-label="Played helper line"
->
-  {playedNames.map((t, idx) => {
-    const isRest = t === "·";
-    const shown = toCondensedSuperscripts(t);
-return (
-  <span
-    key={`hlp-${idx}`}
-    style={{ marginRight: 8, opacity: isRest ? 0.4 : 0.95 }}
-    dangerouslySetInnerHTML={{ __html: shown }}
-  />
-);
-  })}
-</div>
+{helperOn && (
+  <div
+    style={{
+      marginTop: 6,
+      padding: "2px 4px",
+      fontSize: 12,
+      lineHeight: 1.2,
+      color: mode === "ipa" ? "#DCE6FF" : theme.muted,
+      opacity: 1,
+      fontWeight: 400,
+      textTransform: "lowercase",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      letterSpacing: 0.2,
+    }}
+    aria-label="Played helper line"
+  >
+    {playedNames.map((t, idx) => {
+      const isRest = t === "·";
+      const shown = toCondensedSuperscripts(t);
+      return (
+        <span
+          key={`hlp-${idx}`}
+          style={{ marginRight: 8, opacity: isRest ? 0.4 : 0.95 }}
+          dangerouslySetInnerHTML={{ __html: shown }}
+        />
+      );
+    })}
+  </div>
+)}
             </div>
           </div>
 
@@ -1888,8 +1893,35 @@ return (
         </section>
 
         {/* Footer link to Learn page (optional) */}
-        <div style={{ marginTop: 10, display: "flex", justifyContent: "center" }}>
-          <Link
+<div
+  style={{
+    marginTop: 10,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+  }}
+>
+  <button
+    type="button"
+    onClick={() => setHelperOn((v) => !v)}
+    aria-pressed={helperOn}
+    title={helperOn ? "Hide helper (H)" : "Show helper (H)"}
+    style={{
+      border: "none",
+      background: "transparent",
+      color: helperOn ? "#9AA4B2" : "#5E6A7A", // grayish
+      fontWeight: 800,
+      letterSpacing: 0.6,
+      cursor: "pointer",
+      padding: "10px 8px",
+      borderRadius: 10,
+      lineHeight: 1,
+    }}
+  >
+    H
+  </button>
+  <Link
             href="/learn/why-these-notes"
             style={{
               color: theme.gold,

@@ -1,42 +1,42 @@
 import type { Metadata } from "next";
+import React from "react";
 
 export const metadata: Metadata = {
-  title: "KeyClock – Turn Dates into Music • PianoTrainer",
+  title: "KeyClock – Turn Dates into Sound • MusicalToys",
   description:
-    "Type a date and hear it as cadences. KeyClock turns birthdays and times into musical progressions. Free, fast, no sign-up.",
+    "Type any date (12/25/2025, Dec 25 2025, etc.) and hear it as a short sound sequence. Same date, different spelling → different result. Free and instant.",
   alternates: { canonical: "/toys/key-clock" },
   openGraph: {
     type: "website",
-    url: "https://pianotrainer.app/toys/key-clock",
-    title: "KeyClock – Dates → Music (Cadences)",
+    url: "https://musicaltoys.app/toys/key-clock",
+    title: "KeyClock – Dates → Sound",
     description:
-      "Turn any date or time into music. Three zero modes (Chromatic, Ticks, Rest). Perfect for quick Reels.",
+      "Turn any date or time into a short sound sequence. Different formats and spellings create different results. Great for quick clips.",
     images: [
       {
-        url: "https://pianotrainer.app/og/keyclock.png",
+        url: "https://musicaltoys.app/og/keyclock.png",
         width: 1200,
         height: 630,
-        alt: "KeyClock — Dates Through the Circle of Fifths",
+        alt: "KeyClock — turn dates into sound",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "KeyClock – Dates → Music",
+    title: "KeyClock – Dates → Sound",
     description:
-      "Type a date/time and hear it as cadences. Free, fast, no sign-up.",
-    images: ["https://pianotrainer.app/og/keyclock.png"],
+      "Type a date/time in any format and hear it as a short sound sequence. Free and instant.",
+    images: ["https://musicaltoys.app/og/keyclock.png"],
   },
   keywords: [
     "KeyClock",
+    "date to sound",
     "date to music",
-    "circle of fifths",
-    "date harmony",
-    "PianoTrainer",
-    "harmonic calendar",
-    "music generator",
-    "C minor",
-    "Bb major",
+    "text to sound",
+    "sound toy",
+    "music toy",
+    "shareable sound",
+    "MusicalToys",
   ],
   robots: { index: true, follow: true },
 };

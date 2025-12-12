@@ -1,40 +1,40 @@
 import type { Metadata } from "next";
+import React from "react";
 
 export const metadata: Metadata = {
-  title: "ToneDial – Phone/Text to Melody • PianoTrainer",
+  title: "ToneDial – Turn Text into Sound • MusicalToys",
   description:
-    "Map words or phone text (T9) to melody instantly. Three zero modes. Free, fast, no sign-up.",
+    "Type words or phone-style text and hear them as sound. Same text, different spelling → different result. Free and instant.",
   alternates: { canonical: "/toys/tone-dial" },
   openGraph: {
     type: "website",
-    url: "https://pianotrainer.app/toys/tone-dial",
-    title: "ToneDial – Phone/Text → Melody",
+    url: "https://musicaltoys.app/toys/tone-dial",
+    title: "ToneDial – Text → Sound",
     description:
-      "Type phone text or words and hear a melody. T9 mapping, Reels-ready export.",
+      "Turn words or phone-style text into sound. Great for quick clips and experiments.",
     images: [
       {
-        url: "https://pianotrainer.app/og/tonedial.png",
+        url: "https://musicaltoys.app/og/tonedial.png",
         width: 1200,
         height: 630,
-        alt: "ToneDial — Dial Harmony by Number",
+        alt: "ToneDial — turn text into sound",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ToneDial – Phone/Text → Melody",
+    title: "ToneDial – Text → Sound",
     description:
-      "Turn names and numbers into a melody in seconds.",
-    images: ["https://pianotrainer.app/og/tonedial.png"],
+      "Type words or phone-style text and hear them as sound. Free and instant.",
+    images: ["https://musicaltoys.app/og/tonedial.png"],
   },
   keywords: [
     "ToneDial",
-    "phone number music",
-    "circle of fifths",
-    "phone harmony",
-    "number to music",
-    "PianoTrainer",
-    "harmonic dial",
+    "text to sound",
+    "phone text sound",
+    "text experiment",
+    "sound toy",
+    "MusicalToys",
   ],
   robots: { index: true, follow: true },
 };
