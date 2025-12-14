@@ -56,14 +56,14 @@ const LAYOUTS: Record<
     defaults: { textInk: PaletteKey; trailA: PaletteKey; trailB: PaletteKey };
   }
 > = {
-  "01": { label: "Xmas Deer", src: "/cards/postcards/xmas/01.PNG", wishFont: "festive", defaults: { textInk: "warmWhite", trailA: "ember", trailB: "gold" } },
+  "01": { label: "Xmas Deer", src: "/cards/postcards/xmas/01.png", wishFont: "festive", defaults: { textInk: "warmWhite", trailA: "ember", trailB: "gold" } },
   "02": { label: "Xmas tree night", src: "/cards/postcards/xmas/09.jpg", wishFont: "hand", defaults: { textInk: "snowWhite", trailA: "antiqueGold", trailB: "ember" } },
-  "03": { label: "Red berries", src: "/cards/postcards/xmas/03.PNG", wishFont: "hand", defaults: { textInk: "snowWhite", trailA: "rose", trailB: "sky" } },
-  "04": { label: "Wreath", src: "/cards/postcards/xmas/04.PNG", wishFont: "vintage", defaults: { textInk: "ink", trailA: "sky", trailB: "warmWhite" } },
-  "05": { label: "Pine cone", src: "/cards/postcards/xmas/05.PNG", wishFont: "hand", defaults: { textInk: "warmWhite", trailA: "rose", trailB: "gold" } },
-  "06": { label: "Pine", src: "/cards/postcards/xmas/06.PNG", wishFont: "festive", defaults: { textInk: "warmWhite", trailA: "warmWhite", trailB: "rose" } },
-  "07": { label: "Pine lights", src: "/cards/postcards/xmas/07.PNG", wishFont: "hand", defaults: { textInk: "snowWhite", trailA: "ember", trailB: "gold" } },
-  "08": { label: "Candy", src: "/cards/postcards/xmas/08.PNG", wishFont: "festive", defaults: { textInk: "warmWhite", trailA: "sky", trailB: "warmWhite" } },
+  "03": { label: "Red berries", src: "/cards/postcards/xmas/03.png", wishFont: "hand", defaults: { textInk: "snowWhite", trailA: "rose", trailB: "sky" } },
+  "04": { label: "Wreath", src: "/cards/postcards/xmas/04.png", wishFont: "vintage", defaults: { textInk: "ink", trailA: "sky", trailB: "warmWhite" } },
+  "05": { label: "Pine cone", src: "/cards/postcards/xmas/05.png", wishFont: "hand", defaults: { textInk: "warmWhite", trailA: "rose", trailB: "gold" } },
+  "06": { label: "Pine", src: "/cards/postcards/xmas/06.png", wishFont: "festive", defaults: { textInk: "warmWhite", trailA: "warmWhite", trailB: "rose" } },
+  "07": { label: "Pine lights", src: "/cards/postcards/xmas/07.png", wishFont: "hand", defaults: { textInk: "snowWhite", trailA: "ember", trailB: "gold" } },
+  "08": { label: "Candy", src: "/cards/postcards/xmas/08.png", wishFont: "festive", defaults: { textInk: "warmWhite", trailA: "sky", trailB: "warmWhite" } },
   
 };
 
