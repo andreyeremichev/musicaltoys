@@ -14,7 +14,12 @@ import { Mountains_of_Christmas, Playfair_Display, Caveat } from "next/font/goog
 ========================================================= */
 
 /* -------------------- Wish fonts (3-style system) -------------------- */
-const wishFestive = Mountains_of_Christmas({ subsets: ["latin"], weight: ["400", "700"] });
+const wishFestive = Mountains_of_Christmas({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  adjustFontFallback: false,
+  fallback: ["ui-serif", "Georgia", "serif"],
+});
 const wishVintage = Playfair_Display({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
 const wishHand = Caveat({ subsets: ["latin"], weight: ["500", "600", "700"] });
 
@@ -45,7 +50,10 @@ const PALETTE = {
 type PaletteKey = keyof typeof PALETTE;
 
 /* -------------------- Background presets -------------------- */
-type LayoutId = "01" | "02" | "03" | "04" | "05" | "06" | "07" | "08";
+type LayoutId = "01" | "02" | "03" | "04" | "05" | "06" | "07" | "08" | "09";
+
+type Motion = "glow" | "pulse";
+type DemoStyle = "fireworks" | "reveal";
 
 const LAYOUTS: Record<
   LayoutId,
@@ -53,18 +61,132 @@ const LAYOUTS: Record<
     label: string;
     src: string;
     wishFont: WishFontStyle;
+    disableBackdrop?: boolean;
     defaults: { textInk: PaletteKey; trailA: PaletteKey; trailB: PaletteKey };
+
+    defaultMotion: Motion;
+    defaultMood: Mood;
+    defaultZeroPolicy: ZeroPolicy;
+
+    demo: { style: DemoStyle; bursts?: number };
   }
 > = {
-  "01": { label: "Xmas Deer", src: "/cards/postcards/xmas/01.png", wishFont: "festive", defaults: { textInk: "warmWhite", trailA: "ember", trailB: "gold" } },
-  "02": { label: "Xmas tree night", src: "/cards/postcards/xmas/09.jpg", wishFont: "hand", defaults: { textInk: "snowWhite", trailA: "antiqueGold", trailB: "ember" } },
-  "03": { label: "Red berries", src: "/cards/postcards/xmas/03.png", wishFont: "hand", defaults: { textInk: "snowWhite", trailA: "rose", trailB: "sky" } },
-  "04": { label: "Wreath", src: "/cards/postcards/xmas/04.png", wishFont: "vintage", defaults: { textInk: "ink", trailA: "sky", trailB: "warmWhite" } },
-  "05": { label: "Pine cone", src: "/cards/postcards/xmas/05.png", wishFont: "hand", defaults: { textInk: "warmWhite", trailA: "rose", trailB: "gold" } },
-  "06": { label: "Pine", src: "/cards/postcards/xmas/06.png", wishFont: "festive", defaults: { textInk: "warmWhite", trailA: "warmWhite", trailB: "rose" } },
-  "07": { label: "Pine lights", src: "/cards/postcards/xmas/07.png", wishFont: "hand", defaults: { textInk: "snowWhite", trailA: "ember", trailB: "gold" } },
-  "08": { label: "Candy", src: "/cards/postcards/xmas/08.png", wishFont: "festive", defaults: { textInk: "warmWhite", trailA: "sky", trailB: "warmWhite" } },
-  
+  // 01 Frost + colored lights
+  "01": {
+    label: "Frost Lights",
+    src: "/cards/postcards/xmas/01.jpg",
+    wishFont: "festive",
+    disableBackdrop: true,
+    defaults: { textInk: "snowWhite", trailA: "gold", trailB: "emerald" },
+    defaultMotion: "pulse",
+    defaultMood: "balanced",
+    defaultZeroPolicy: "chromatic",
+    demo: { style: "fireworks", bursts: 2 },
+  },
+
+  // 02 Coffee snowflake
+  "02": {
+    label: "Cozy Coffee",
+    src: "/cards/postcards/xmas/02.jpg",
+    wishFont: "vintage",
+    disableBackdrop: true,
+    defaults: { textInk: "cocoa", trailA: "antiqueGold", trailB: "antiqueGold" },
+    defaultMotion: "glow",
+    defaultMood: "brighter",
+    defaultZeroPolicy: "ticks",
+    demo: { style: "reveal" },
+  },
+
+  // 03 Knit texture
+  "03": {
+    label: "Knit",
+    src: "/cards/postcards/xmas/03.jpg",
+    wishFont: "hand",
+    disableBackdrop: true,
+    defaults: { textInk: "warmWhite", trailA: "gold", trailB: "pine" },
+    defaultMotion: "glow",
+    defaultMood: "balanced",
+    defaultZeroPolicy: "chromatic",
+    demo: { style: "reveal" },
+  },
+
+  // 04 Gingerbread deer
+  "04": {
+    label: "Gingerbread",
+    src: "/cards/postcards/xmas/04.jpg",
+    wishFont: "festive",
+    disableBackdrop: true,
+    defaults: { textInk: "cocoa", trailA: "snowWhite", trailB: "gold" },
+    defaultMotion: "pulse",
+    defaultMood: "brighter",
+    defaultZeroPolicy: "chromatic",
+    demo: { style: "fireworks", bursts: 3 },
+  },
+
+  // 05 Frost pine drop
+  "05": {
+    label: "Frost Pine",
+    src: "/cards/postcards/xmas/05.jpg",
+    wishFont: "vintage",
+    disableBackdrop: true,
+    defaults: { textInk: "snowWhite", trailA: "frost", trailB: "frost" },
+    defaultMotion: "glow",
+    defaultMood: "darker",
+    defaultZeroPolicy: "rest",
+    demo: { style: "reveal" },
+  },
+
+  // 06 Blue ornament star
+  "06": {
+    label: "Ornament Star",
+    src: "/cards/postcards/xmas/06.jpg",
+    wishFont: "vintage",
+    disableBackdrop: true,
+    defaults: { textInk: "snowWhite", trailA: "gold", trailB: "sky" },
+    defaultMotion: "glow",
+    defaultMood: "balanced",
+    defaultZeroPolicy: "chromatic",
+    demo: { style: "reveal" },
+  },
+
+  // 07 Red ribbon gold snowflake
+  "07": {
+    label: "Ribbon",
+    src: "/cards/postcards/xmas/07.jpg",
+    wishFont: "vintage",
+    disableBackdrop: true,
+    defaults: { textInk: "snowWhite", trailA: "gold", trailB: "gold" },
+    defaultMotion: "glow",
+    defaultMood: "brighter",
+    defaultZeroPolicy: "ticks",
+    demo: { style: "reveal" },
+  },
+
+  // 08 Fireplace embers
+  "08": {
+    label: "Fireplace",
+    src: "/cards/postcards/xmas/08.jpg",
+    wishFont: "hand",
+    disableBackdrop: true,
+    defaults: { textInk: "warmWhite", trailA: "ember", trailB: "ember" },
+    defaultMotion: "glow",
+    defaultMood: "darker",
+    defaultZeroPolicy: "ticks",
+    demo: { style: "reveal" },
+  },
+
+  // 09 Cake crumb berries (jpg)
+  "09": {
+    label: "Cake",
+    src: "/cards/postcards/xmas/09.jpg",
+    wishFont: "hand",
+    disableBackdrop: true,
+    defaults: { textInk: "cocoa", trailA: "rose", trailB: "gold" },
+    defaultMotion: "pulse",
+    defaultMood: "balanced",
+    defaultZeroPolicy: "chromatic",
+    demo: { style: "fireworks", bursts: 2 },
+  },
 };
 
 /* -------------------- Wishes -------------------- */
@@ -606,6 +728,21 @@ export default function XmasPostcardPage() {
 
   // Running
   const [isRunning, setIsRunning] = useState(false);
+  // ---- Micro-demo (visual only) ----
+const [demoMode, setDemoMode] = useState<DemoStyle | "none">("none");
+const demoTimerRef = useRef<number | null>(null);
+
+// Demo fireworks particles (separate from Pulse fireworks)
+const [demoFireworks, setDemoFireworks] = useState<Firework[]>([]);
+
+// Demo snapshot paths (for "reveal" demo)
+const [demoMajPath, setDemoMajPath] = useState<string>("");
+const [demoMinPath, setDemoMinPath] = useState<string>("");
+const [demoSpiralPrev, setDemoSpiralPrev] = useState<string>("");
+const [demoSpiralCur, setDemoSpiralCur] = useState<string>("");
+
+// Quick fade in/out for reveal demo
+const [demoRevealOn, setDemoRevealOn] = useState(false);
 
   // Caption highlight state (NEW)
   const [activeCharIdx, setActiveCharIdx] = useState<number>(-1);
@@ -629,11 +766,23 @@ export default function XmasPostcardPage() {
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
-    setTextInkKey(layout.defaults.textInk);
-    setTrailAKey(layout.defaults.trailA);
-    setTrailBKey(layout.defaults.trailB);
-    setTextColorMode("default");
-  }, [layoutId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Apply locked per-card defaults
+  setTextInkKey(layout.defaults.textInk);
+  setTrailAKey(layout.defaults.trailA);
+  setTrailBKey(layout.defaults.trailB);
+
+  setMotion(layout.defaultMotion);
+  setMood(layout.defaultMood);
+  setZeroPolicy(layout.defaultZeroPolicy);
+
+  setTextColorMode("default");
+
+  // Run micro-demo (visual only) when card changes
+  // Skip if currently playing
+  if (!isRunning) runMicroDemo();
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [layoutId]);
 
   const textInk = PALETTE[textInkKey];
   const trailA = PALETTE[trailAKey];
@@ -1180,6 +1329,142 @@ const fireworksRafRef = useRef<number>(0);
       return next;
     });
   }, [cancelSparkles, cancelWishAnim, runWishFlash]);
+
+  function clearDemo() {
+  if (demoTimerRef.current != null) {
+    window.clearTimeout(demoTimerRef.current);
+    demoTimerRef.current = null;
+  }
+  setDemoMode("none");
+  setDemoFireworks([]);
+  setDemoMajPath("");
+  setDemoMinPath("");
+  setDemoSpiralPrev("");
+  setDemoSpiralCur("");
+  setDemoRevealOn(false);
+}
+
+function spawnDemoFireworksBurst(count = 2) {
+  // Burst near the center area: use 0..100 SVG coords
+  // Slightly above center looks best
+  const points = [
+    { x: 50, y: 46 },
+    { x: 58, y: 54 },
+    { x: 42, y: 54 },
+  ];
+
+  const bursts = Math.max(1, count);
+  const out: Firework[] = [];
+
+  for (let i = 0; i < bursts; i++) {
+    const p = points[i % points.length];
+    const isMaj = true; // demo uses "happy" palette bias
+    const cols = isMaj ? [trailA, PALETTE.gold, textInk] : [trailB, PALETTE.gold, textInk];
+    out.push(...makeFireworksBurst(p.x, p.y, cols, 16));
+  }
+
+  setDemoFireworks(out);
+}
+
+function buildRevealSnapshot() {
+  // Build a short “final look” without running the engine:
+  // - Balanced: take a short slice of steps across segments and build wiggly paths
+  // - Single-mode: build one spiral from the first N playable spokes
+
+  const segs = segments; // current (after applying defaults on layout change)
+  const segCount = segs.length;
+  const segLen = schedule.length;
+
+  const maxSteps = Math.min(segCount * segLen, 18); // short preview, looks good
+
+  // Collect spokes in step order
+  const spokes: { spoke: number; key: KeyName }[] = [];
+  for (let s = 0; s < maxSteps; s++) {
+    const segIdx = Math.floor(s / segLen) % segCount;
+    const keyNow = segs[segIdx];
+    const tok = schedule[s % segLen]?.tok;
+    if (!tok) continue;
+    if (tok.kind === "rest" || tok.kind === "intro" || tok.kind === "resolve" || tok.kind === "toggle") continue;
+
+    const spoke = tok.kind === "deg" ? degToIndexForKey(tok.d, keyNow) : DEGREE_ORDER.indexOf(tok.c as any);
+    if (spoke >= 0) spokes.push({ spoke, key: keyNow });
+  }
+
+  const isSingle = mood === "brighter" || mood === "darker";
+
+  if (!isSingle) {
+    const maj: number[] = [];
+    const min: number[] = [];
+    for (const s of spokes) {
+      (s.key === "BbMajor" ? maj : min).push(s.spoke);
+    }
+    const seed = sanitizeInput(typed || "XMAS");
+    setDemoMajPath(wigglyPathFromNodes(maj, `${seed}|demoMaj`));
+    setDemoMinPath(wigglyPathFromNodes(min, `${seed}|demoMin`));
+    setDemoSpiralPrev("");
+    setDemoSpiralCur("");
+  } else {
+    // One spiral preview using the spokes’ angles
+    const angles = spokes.map((s) => nodeAngleRad(s.spoke));
+    const n = Math.max(1, angles.length);
+    const curls = spiralCurlsForCount(n);
+
+    const avgJump = avgAngularJump(angles);
+    const jumpNorm = clamp(avgJump / Math.PI, 0, 1);
+    const maxR = clamp(20 + jumpNorm * 18, 18, 36);
+
+    const startAngle = angles[0] ?? -Math.PI / 2;
+    const dir = mood === "darker" ? -1 : 1;
+    const influence = spiralParams.influence; // keep your tuned value (0.08)
+
+    let theta = startAngle;
+    let pts: Pt[] = [{ x: 50, y: 50 }];
+
+    for (let i = 0; i < angles.length; i++) {
+      const baseAdvance = (dir * (Math.PI * 2 * curls)) / n;
+      const proposed = theta + baseAdvance;
+      theta = angleLerp(proposed, angles[i], influence);
+
+      const t = clamp((i + 1) / n, 0, 1);
+      const r = maxR * t;
+
+      const x = 50 + Math.cos(theta) * r;
+      const y = 50 + Math.sin(theta) * r;
+      pts.push({ x, y });
+    }
+
+    setDemoMajPath("");
+    setDemoMinPath("");
+    setDemoSpiralPrev(""); // no prev in demo
+    setDemoSpiralCur(smoothPath(pts));
+  }
+}
+
+function runMicroDemo() {
+  clearDemo();
+
+  // Trigger the correct demo for the current layout
+  if (layout.demo.style === "fireworks") {
+    setDemoMode("fireworks");
+    spawnDemoFireworksBurst(layout.demo.bursts ?? 2);
+
+    // auto-clear quickly
+    demoTimerRef.current = window.setTimeout(() => clearDemo(), 600);
+    return;
+  }
+
+  // reveal demo
+  setDemoMode("reveal");
+  buildRevealSnapshot();
+  setDemoRevealOn(true);
+
+  // fade out
+  demoTimerRef.current = window.setTimeout(() => {
+    setDemoRevealOn(false);
+    // clear a bit after fade out
+    demoTimerRef.current = window.setTimeout(() => clearDemo(), 250);
+  }, 550);
+}
   const onDownloadVideo = useCallback(async () => {
   if (!displayText.trim()) return;
   setIsExporting(true);
@@ -1695,6 +1980,36 @@ const fireworksRafRef = useRef<number>(0);
     if (!wishAnimOn) setWishAnimText(wish);
   }, [wish, wishAnimOn]);
 
+  useEffect(() => {
+  if (demoMode !== "fireworks" || demoFireworks.length === 0) return;
+
+  let raf = 0;
+  let last = performance.now();
+
+  const tick = () => {
+    const now = performance.now();
+    const dt = Math.min(2, (now - last) / 16.7); // normalized
+    last = now;
+
+    setDemoFireworks((prev) =>
+      prev
+        .map((p) => ({
+          ...p,
+          x: p.x + p.vx * dt,
+          y: p.y + p.vy * dt,
+          vy: p.vy + 0.04 * dt,
+          life: p.life - 0.05 * dt,
+        }))
+        .filter((p) => p.life > 0)
+    );
+
+    raf = requestAnimationFrame(tick);
+  };
+
+  raf = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(raf);
+}, [demoMode, demoFireworks.length]);
+
   // cleanup
   useEffect(() => {
     return () => {
@@ -1765,29 +2080,33 @@ const fireworksRafRef = useRef<number>(0);
             }}
           >
             {/* Full-card subtle frost (LOCKED tuning) */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                zIndex: 1,
-                pointerEvents: "none",
-                backdropFilter: "blur(0.5px)",
-                WebkitBackdropFilter: "blur(0.5px)",
-                background: "rgba(255,255,255,0.01)",
-              }}
-            />
+            {!layout.disableBackdrop && (
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      zIndex: 1,
+      pointerEvents: "none",
+      backdropFilter: "blur(2px)",
+      WebkitBackdropFilter: "blur(2px)",
+      background: "rgba(255,255,255,0.01)",
+    }}
+  />
+)}
 
             {/* Center veil (subtle) */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                zIndex: 2,
-                pointerEvents: "none",
-                background:
-                  "radial-gradient(circle at 50% 48%, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.05) 42%, rgba(0,0,0,0.00) 72%)",
-              }}
-            />
+           {!layout.disableBackdrop && (
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      zIndex: 2,
+      pointerEvents: "none",
+      background:
+        "radial-gradient(circle at 50% 48%, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.05) 42%, rgba(0,0,0,0.00) 72%)",
+    }}
+  />
+)}
 
             {/* Trails layer */}
             <div style={{ position: "absolute", inset: 0, zIndex: 3, display: "grid", placeItems: "center", pointerEvents: "none" }}>
@@ -1803,6 +2122,62 @@ const fireworksRafRef = useRef<number>(0);
                     </feMerge>
                   </filter>
                 </defs>
+                {/* DEMO reveal overlay (on background change only) */}
+{demoRevealOn && demoMode === "reveal" && !showPulseOnly ? (
+  <>
+    {demoMajPath ? (
+      <path
+        d={demoMajPath}
+        fill="none"
+        stroke={trailA}
+        strokeWidth={1.15}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.65}
+        filter={showGlow ? "url(#vt-glow)" : undefined}
+      />
+    ) : null}
+
+    {demoMinPath ? (
+      <path
+        d={demoMinPath}
+        fill="none"
+        stroke={trailB}
+        strokeWidth={1.15}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.5}
+        filter={showGlow ? "url(#vt-glow)" : undefined}
+      />
+    ) : null}
+
+    {demoSpiralCur ? (
+      <path
+        d={demoSpiralCur}
+        fill="none"
+        stroke={spiralColor}
+        strokeWidth={1.15}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.65}
+        filter={showGlow ? "url(#vt-glow)" : undefined}
+      />
+    ) : null}
+  </>
+) : null}
+{/* Demo fireworks overlay (shows briefly on background change) */}
+{demoMode === "fireworks"
+  ? demoFireworks.map((p) => (
+      <circle
+        key={p.id}
+        cx={p.x}
+        cy={p.y}
+        r={p.r}
+        fill={p.color}
+        opacity={Math.max(0, p.life)}
+      />
+    ))
+  : null}
                 {/* Single-mode: spiral (prev + current) — ONLY in Glow mode */}
 {isSingleMode && !showPulseOnly && spiralPrevPath ? (
   <path
@@ -2069,7 +2444,7 @@ const fireworksRafRef = useRef<number>(0);
                   <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.8 }}>Motion</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button type="button" onClick={() => setMotion("glow")} style={pill(motion === "glow")}>Glow</button>
-<button type="button" onClick={() => setMotion("pulse")} style={pill(motion === "pulse")}>Firework</button>
+<button type="button" onClick={() => setMotion("pulse")} style={pill(motion === "pulse")}>Fireworks</button>
                   </div>
                 </div>
 
