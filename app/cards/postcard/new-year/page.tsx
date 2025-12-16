@@ -3,6 +3,38 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Mountains_of_Christmas, Playfair_Display, Caveat } from "next/font/google";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "New Year Musical Postcard – MusicalToys",
+  description:
+    "Create a New Year musical postcard from any date or message. Choose a background, play it, and share a link that recreates the same card.",
+  alternates: { canonical: "/cards/postcard/new-year" },
+  openGraph: {
+    title: "New Year Musical Postcard – MusicalToys",
+    description:
+      "Create a New Year musical postcard from any date or message. Pick a background, play it, and share it.",
+    url: "https://musicaltoys.app/cards/postcard/new-year",
+    siteName: "MusicalToys",
+    images: [
+      {
+        url: "/og/musicaltoys-og.png",
+        width: 1200,
+        height: 630,
+        alt: "New Year Musical Postcard – MusicalToys",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "New Year Musical Postcard – MusicalToys",
+    description:
+      "Create a New Year musical postcard from any date or message. Pick a background, play it, and share it.",
+    images: ["/og/musicaltoys-og.png"],
+  },
+};
+
 /* =========================================================
    Christmas Musical Postcard — LIVE TRAILS + WISH MAGIC + AUDIO + INPUT CAPTION
    - Balanced: wiggly node-to-node trails
@@ -2169,6 +2201,27 @@ function runMicroDemo() {
   return (
     <div style={{ minHeight: "100svh", background: "#0B0F14", color: "#E6EBF2", display: "flex", justifyContent: "center", padding: 10 }}>
       <main style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", gap: 8 }}>
+        <script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      name: "New Year Musical Postcard",
+      applicationCategory: "MusicApplication",
+      operatingSystem: "Web",
+      url: "https://musicaltoys.app/cards/postcard/new-year",
+      description:
+        "Create a New Year musical postcard from any date or message. Choose a background, play it, and share a link that recreates the same postcard.",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      isPartOf: {
+        "@type": "WebSite",
+        name: "MusicalToys",
+        url: "https://musicaltoys.app",
+      },
+    }),
+  }}
+/>
         <header style={{ textAlign: "center", paddingTop: 2 }}>
           <div style={{ fontSize: 17, fontWeight: 950, letterSpacing: "0.01em" }}>New Year Musical Postcard</div>
           <div style={{ fontSize: 12, opacity: 0.72 }}>Type anything. Press play. Send a wish.</div>

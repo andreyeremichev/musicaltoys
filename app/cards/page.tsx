@@ -3,15 +3,92 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Cards – MusicalToys",
+  title: "Musical Postcards – MusicalToys",
   description:
-    "Create musical postcards, stave cards and musical business cards. Turn moments and details into musical keepsakes you can share.",
+    "Create musical postcards from dates and messages. Choose a theme, play it, and share a link that recreates the same postcard.",
+  alternates: { canonical: "/cards/postcard" },
+  openGraph: {
+    title: "Musical Postcards – MusicalToys",
+    description:
+      "Create musical postcards from dates and messages. Pick a theme, play it, and share it.",
+    url: "https://musicaltoys.app/cards/postcard",
+    siteName: "MusicalToys",
+    images: [
+      {
+        url: "/og/musicaltoys-og.png",
+        width: 1200,
+        height: 630,
+        alt: "Musical Postcards – MusicalToys",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Musical Postcards – MusicalToys",
+    description:
+      "Create musical postcards from dates and messages. Pick a theme, play it, and share it.",
+    images: ["/og/musicaltoys-og.png"],
+  },
 };
 
 export default function CardsPage() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto w-full max-w-6xl px-4 pb-12 pt-6 md:px-8 md:pb-16 md:pt-10">
+        {/* Structured summary for AI systems */}
+<script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      name: "Musical Postcards",
+      applicationCategory: "MusicApplication",
+      operatingSystem: "Web",
+      url: "https://musicaltoys.app/cards/postcard",
+      description:
+        "A hub of themed musical postcards. Choose a theme, type a date or message, play it, and share a link that recreates the same postcard.",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      isPartOf: {
+        "@type": "WebSite",
+        name: "MusicalToys",
+        url: "https://musicaltoys.app",
+      },
+    }),
+  }}
+/>
+
+<script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: "Musical Postcard Themes",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Christmas Musical Postcard",
+          url: "https://musicaltoys.app/cards/postcard/xmas",
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "New Year Musical Postcard",
+          url: "https://musicaltoys.app/cards/postcard/new-year",
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: "Date We Met Musical Postcard",
+          url: "https://musicaltoys.app/cards/postcard/date-we-met",
+        },
+      ],
+    }),
+  }}
+/>
         <header className="mb-6 md:mb-8">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Cards

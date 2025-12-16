@@ -1,13 +1,30 @@
 import type { Metadata } from "next";
 
+/*
+  CHANGES MADE (SEO + AI SEARCH):
+  1) Added `alternates.canonical` → establishes the canonical home URL
+  2) Clarified description to explicitly mention:
+     - musical postcards
+     - shareable links
+  3) Left OG/Twitter intact but aligned wording for consistency
+*/
+
 export const metadata: Metadata = {
   title: "MusicalToys – Turn Anything Into Music",
+
+  // 🔹 Slightly refined description for AI clarity (no keyword stuffing)
   description:
-    "Turn words, dates and numbers into melodies, harmonies and musical postcards. Text-to-music, date-to-music and musical card generators — no music skills needed.",
+    "Turn words, dates and numbers into melodies, harmonies and musical postcards. Create, play, and share musical cards — no music skills needed.",
+
+  // 🔹 Canonical URL for search engines & AI crawlers
+  alternates: {
+    canonical: "/",
+  },
+
   openGraph: {
     title: "MusicalToys – Turn Anything Into Music",
     description:
-      "Turn words, dates and numbers into melodies, harmonies and musical postcards. Text-to-music, date-to-music and musical card generators — no music skills needed.",
+      "Turn words, dates and numbers into melodies, harmonies and musical postcards. Create and share musical cards directly in your browser.",
     url: "https://musicaltoys.app",
     siteName: "MusicalToys",
     images: [
@@ -20,11 +37,12 @@ export const metadata: Metadata = {
     ],
     type: "website",
   },
+
   twitter: {
     card: "summary_large_image",
     title: "MusicalToys – Turn Anything Into Music",
     description:
-      "Turn words, dates and numbers into melodies, harmonies and musical postcards. Text-to-music, date-to-music and musical card generators — no music skills needed.",
+      "Turn words, dates and numbers into melodies, harmonies and musical postcards. Create and share musical cards.",
     images: ["/og/musicaltoys-og.png"],
   },
 };
@@ -35,6 +53,39 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-10 pt-6 md:px-8 md:pb-16 md:pt-10">
+        {/* Structured summary for AI systems */}
+<script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "MusicalToys",
+      url: "https://musicaltoys.app",
+      description:
+        "MusicalToys lets people turn words, dates, and numbers into music and musical postcards that can be played and shared online.",
+    }),
+  }}
+/>
+
+<script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "MusicalToys",
+      applicationCategory: "MusicApplication",
+      operatingSystem: "Web",
+      url: "https://musicaltoys.app",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+      },
+    }),
+  }}
+/>
         {/* =========================
            HERO
         ========================== */}
