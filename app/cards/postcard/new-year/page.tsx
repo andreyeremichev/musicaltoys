@@ -773,15 +773,111 @@ const [demoRevealOn, setDemoRevealOn] = useState(false);
 
   const [isExporting, setIsExporting] = useState(false);
 
+  // ---------- Share URL (stateful) ----------
+const buildShareUrl = useCallback(() => {
+  if (typeof window === "undefined") return "";
+  const params = new URLSearchParams();
+
+  // card state
+  params.set("bg", layoutId);
+  params.set("motion", motion);
+  params.set("mood", mood);
+  params.set("zero", zeroPolicy);
+
+  // user input
+  params.set("q", typed || "");
+
+  // wish state
+  params.set("wish", String(wishIdx));
+  params.set("cw", customWish || "");
+
+  const url = new URL(window.location.href);
+  url.search = params.toString();
+  return url.toString();
+}, [layoutId, motion, mood, zeroPolicy, typed, wishIdx, customWish]);
+
+const onShare = useCallback(async () => {
+  const url = buildShareUrl();
+  const title = "Musical Postcard";
+  const text = "Open my musical postcard";
+
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text, url });
+      return;
+    }
+  } catch {}
+
+  try {
+    await navigator.clipboard.writeText(url);
+    alert("Link copied!");
+  } catch {
+    try {
+      prompt("Copy this link:", url);
+    } catch {}
+  }
+}, [buildShareUrl]);
+// ---------- Restore postcard from share URL (one-time on mount) ----------
+const didHydrateFromUrlRef = useRef(false);
+const urlOverridesRef = useRef<{ motion?: boolean; mood?: boolean; zero?: boolean; q?: boolean; wish?: boolean; cw?: boolean }>({});
+
+useEffect(() => {
+  if (typeof window === "undefined") return;
+  if (didHydrateFromUrlRef.current) return;
+  didHydrateFromUrlRef.current = true;
+
+  try {
+    const sp = new URLSearchParams(window.location.search);
+
+    // remember which keys were supplied in the URL (so layout defaults don't overwrite them)
+    urlOverridesRef.current = {
+      motion: sp.has("motion"),
+      mood: sp.has("mood"),
+      zero: sp.has("zero"),
+      q: sp.has("q"),
+      wish: sp.has("wish"),
+      cw: sp.has("cw"),
+    };
+
+    // restore background first
+    const bg = sp.get("bg") as LayoutId | null;
+    if (bg && (bg as any) in LAYOUTS) setLayoutId(bg);
+
+    // restore controls
+    const motionParam = sp.get("motion") as Motion | null;
+    if (motionParam === "glow" || motionParam === "pulse") setMotion(motionParam);
+
+    const moodParam = sp.get("mood") as Mood | null;
+    if (moodParam === "balanced" || moodParam === "brighter" || moodParam === "darker") setMood(moodParam);
+
+    const zeroParam = sp.get("zero") as ZeroPolicy | null;
+    if (zeroParam === "chromatic" || zeroParam === "ticks" || zeroParam === "rest") setZeroPolicy(zeroParam);
+
+    // restore input
+    const q = sp.get("q");
+    if (typeof q === "string") setTyped(q);
+
+    // restore wish index + custom wish
+    const wishParam = sp.get("wish");
+    if (wishParam != null) {
+      const n = Number(wishParam);
+      if (Number.isFinite(n)) setWishIdx(n);
+    }
+
+    const cw = sp.get("cw");
+    if (typeof cw === "string") setCustomWish(cw);
+  } catch {}
+}, []);
+
   useEffect(() => {
   // Apply locked per-card defaults
   setTextInkKey(layout.defaults.textInk);
   setTrailAKey(layout.defaults.trailA);
   setTrailBKey(layout.defaults.trailB);
 
-  setMotion(layout.defaultMotion);
-  setMood(layout.defaultMood);
-  setZeroPolicy(layout.defaultZeroPolicy);
+  if (!urlOverridesRef.current.motion) setMotion(layout.defaultMotion);
+if (!urlOverridesRef.current.mood) setMood(layout.defaultMood);
+if (!urlOverridesRef.current.zero) setZeroPolicy(layout.defaultZeroPolicy);
 
   setTextColorMode("default");
 
@@ -962,6 +1058,7 @@ const fireworksRafRef = useRef<number>(0);
     },
     [runSparkles]
   );
+  
 
   /* -------------------- Trails state -------------------- */
   const majNodesRef = useRef<number[]>([]);
@@ -1041,6 +1138,8 @@ const fireworksRafRef = useRef<number>(0);
       spawnFireworksAt(p.x, p.y, isMaj);
       return; // ⛔ skip pulse dot + trails
     }
+
+    
 
     // existing pulse marker (Glow mode)
     const col = isMaj ? trailA : trailB;
@@ -1338,6 +1437,8 @@ runWishFlash(nextChoice === CUSTOM_WISH_LABEL ? (customWish.trim() || CUSTOM_WIS
       return next;
     });
   }, [cancelSparkles, cancelWishAnim, runWishFlash]);
+
+  
 
   function clearDemo() {
   if (demoTimerRef.current != null) {
@@ -2069,7 +2170,7 @@ function runMicroDemo() {
     <div style={{ minHeight: "100svh", background: "#0B0F14", color: "#E6EBF2", display: "flex", justifyContent: "center", padding: 10 }}>
       <main style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", gap: 8 }}>
         <header style={{ textAlign: "center", paddingTop: 2 }}>
-          <div style={{ fontSize: 17, fontWeight: 950, letterSpacing: "0.01em" }}>Christmas Musical Postcard</div>
+          <div style={{ fontSize: 17, fontWeight: 950, letterSpacing: "0.01em" }}>New Year Musical Postcard</div>
           <div style={{ fontSize: 12, opacity: 0.72 }}>Type anything. Press play. Send a wish.</div>
         </header>
 
@@ -2309,14 +2410,15 @@ function runMicroDemo() {
     value={customWish}
     onChange={(e) => setCustomWish(e.target.value)}
 placeholder="This year, we…"    style={{
-      background: "transparent",
-      border: "none",
-      outline: "none",
-      textAlign: "center",
-      width: "min(92vw, 28ch)",
-      color: "inherit",
-      font: "inherit",
-    }}
+  pointerEvents: "auto",
+  background: "transparent",
+  border: "none",
+  outline: "none",
+  textAlign: "center",
+  width: "min(92vw, 28ch)",
+  color: "inherit",
+  font: "inherit",
+}}
   />
 ) : (
   wishAnimText
@@ -2394,9 +2496,9 @@ placeholder="This year, we…"    style={{
              <button type="button" onClick={onDownloadVideo} disabled={isExporting}style={iconBtn()} aria-label="Download" title="Download">
               💾
             </button>
-            <button type="button" onClick={() => alert("Share (placeholder)")} style={iconBtn()} aria-label="Share" title="Share">
-              📤
-            </button>
+            <button type="button" onClick={onShare} style={iconBtn()} aria-label="Share" title="Share">
+  📤
+</button>
           </div>
 
           {/* Background slider */}
