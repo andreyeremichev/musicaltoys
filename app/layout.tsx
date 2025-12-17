@@ -5,6 +5,8 @@ import "./globals.css";
 import { SiteHeader } from "./components/layout/SiteHeader";
 import SiteFooter from "./components/layout/SiteFooter";
 
+import { Analytics } from "@vercel/analytics/react";
+
 /* =========================
    Fonts (KEEP AS IS)
 ========================= */
@@ -45,7 +47,8 @@ export default function RootLayout({
             {children}
           </main>
 
-          <SiteFooter />
+                <SiteFooter />
+      <Analytics />
         </div>
       </body>
     </html>
