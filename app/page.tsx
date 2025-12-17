@@ -15,11 +15,9 @@ export const metadata: Metadata = {
   // 🔹 Slightly refined description for AI clarity (no keyword stuffing)
   description:
     "Turn words, dates and numbers into melodies, harmonies and musical postcards. Create, play, and share musical cards — no music skills needed.",
-
+      metadataBase: new URL("https://musicaltoys.app"),
   // 🔹 Canonical URL for search engines & AI crawlers
-  alternates: {
-    canonical: "/",
-  },
+  alternates: { canonical: "https://musicaltoys.app/" },
 
   openGraph: {
     title: "MusicalToys – Turn Anything Into Music",
@@ -59,11 +57,24 @@ export default function HomePage() {
   dangerouslySetInnerHTML={{
     __html: JSON.stringify({
       "@context": "https://schema.org",
-      "@type": "WebSite",
+      "@type": "SoftwareApplication",
       name: "MusicalToys",
+      applicationCategory: "MusicApplication",
+      operatingSystem: "Web",
       url: "https://musicaltoys.app",
       description:
-        "MusicalToys lets people turn words, dates, and numbers into music and musical postcards that can be played and shared online.",
+        "MusicalToys turns words, dates, and numbers into playful music and shareable musical cards — no music skills needed.",
+      provider: {
+        "@type": "Organization",
+        name: "Pianotrainer",
+        url: "https://pianotrainer.app",
+      },
+      isAccessibleForFree: true,
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+      },
     }),
   }}
 />
