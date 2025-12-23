@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home" },
+  { href: "/today", label: "Today" },
   { href: "/toys", label: "Toys" },
   { href: "/cards", label: "Cards" },
-  { href: "/cinematic", label: "Cinematic" },
 ];
 
 export function SiteHeader() {
