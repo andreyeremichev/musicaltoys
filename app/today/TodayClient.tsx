@@ -4,10 +4,18 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import CaptionLine from "../components/today/CaptionLine";
 import InkSpiral from "../components/today/InkSpiral";
 
-import { resolveLocalDateParts, formatISODateKey, formatTodayPhraseEnglish } from "@/lib/today/resolveToday";
+import {
+  resolveLocalDateParts,
+  formatISODateKey,
+  formatTodayPhraseEnglish,
+} from "@/lib/today/resolveToday";
 import { resolveTodaySkin, TODAY_SKINS, type TodaySkinId } from "@/lib/today/skins";
 
-import { playTodayKeyClockPhrase, primeAudioOutput, buildTodayAngles } from "@/lib/today/keyclockToday";
+import {
+  playTodayKeyClockPhrase,
+  primeAudioOutput,
+  buildTodayAngles,
+} from "@/lib/today/keyclockToday";
 import type { ZeroPolicy } from "@/lib/today/keyclockToday";
 
 type Phase = "idle" | "priming" | "playing" | "done";
@@ -17,7 +25,7 @@ const AUTOPLAY_SILENCE_MS = 500;
 
 export default function TodayClient() {
   // Resolve once per session
-  const [phraseText, setPhraseText] = useState<string>(""); // LOCKED: "Tuesday December 23"
+  const [phraseText, setPhraseText] = useState<string>(""); // e.g. "Tuesday December 23"
   const [isoKey, setIsoKey] = useState<string>("");
   const [skinId, setSkinId] = useState<TodaySkinId>("mon");
 
@@ -129,7 +137,8 @@ export default function TodayClient() {
 
   // Measure header height so Today fits below site chrome
   useEffect(() => {
-    const h = (document.querySelector("header") as HTMLElement | null)?.offsetHeight ?? 0;
+    const h =
+      (document.querySelector("header") as HTMLElement | null)?.offsetHeight ?? 0;
     setChromeTopPx(h);
   }, []);
 
@@ -179,7 +188,7 @@ export default function TodayClient() {
   const showPlayAgain = phase !== "priming";
 
   return (
-    <main style={{ background: skin.bg, color: skin.text }}>
+    <div style={{ background: skin.bg, color: skin.text }}>
       <div
         style={{
           height: `calc(100svh - ${chromeTopPx}px)`,
@@ -192,35 +201,41 @@ export default function TodayClient() {
       >
         {/* Top: big phrase */}
         <div style={{ paddingTop: "max(10px, env(safe-area-inset-top))" }}>
-  <div
-    style={{
-      fontSize: 18,
-      lineHeight: 1.2,
-      letterSpacing: "0.04em",
-      textTransform: "uppercase",
-      opacity: 0.65,
-    }}
-  >
-    {phraseText ? phraseText.split(" ")[0] : " "}
-  </div>
+          <div
+            style={{
+              fontSize: 18,
+              lineHeight: 1.2,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              opacity: 0.65,
+            }}
+          >
+            {phraseText ? phraseText.split(" ")[0] : " "}
+          </div>
 
-  <div
-    style={{
-      marginTop: 4,
-      fontSize: 40,
-      lineHeight: 1.08,
-      fontWeight: 560,
-      letterSpacing: "-0.02em",
-      opacity: 0.95,
-    }}
-  >
-    {phraseText ? phraseText.split(" ").slice(1).join(" ") : " "}
-  </div>
-</div>
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 40,
+              lineHeight: 1.08,
+              fontWeight: 560,
+              letterSpacing: "-0.02em",
+              opacity: 0.95,
+            }}
+          >
+            {phraseText ? phraseText.split(" ").slice(1).join(" ") : " "}
+          </div>
+        </div>
 
         {/* Middle: spiral gesture */}
         <div style={{ position: "relative", display: "grid", placeItems: "center" }}>
-          <InkSpiral seed={spiralSeed} angles={angles} progress={spiralProgress} ink={skin.ink} opacity={0.26} />
+          <InkSpiral
+            seed={spiralSeed}
+            angles={angles}
+            progress={spiralProgress}
+            ink={skin.ink}
+            opacity={0.26}
+          />
         </div>
 
         {/* Bottom: caption proof + control */}
@@ -254,6 +269,6 @@ export default function TodayClient() {
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
