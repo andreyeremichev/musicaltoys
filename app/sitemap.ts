@@ -34,6 +34,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.4,
     },
 
+    // Contextual daily pages (secondary)
+    {
+      url: `${base}/today`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.3,
+    },
+    {
+      url: `${base}/calendar`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.4,
+    },
+
     // Hubs
     {
       url: `${base}/toys`,
