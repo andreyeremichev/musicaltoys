@@ -33,9 +33,7 @@ export function SiteHeader() {
                 MusicalToys
               </span>
             </Link>
-            <span className="hidden rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-700 md:inline-flex">
-              beta
-            </span>
+            
           </div>
         </div>
 
