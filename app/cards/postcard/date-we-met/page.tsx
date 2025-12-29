@@ -5,7 +5,7 @@ import { Mountains_of_Christmas, Playfair_Display, Caveat } from "next/font/goog
 
 
 /* =========================================================
-   Christmas Musical Postcard — LIVE TRAILS + WISH MAGIC + AUDIO + INPUT CAPTION
+   Date-we-met Musical Postcard — LIVE TRAILS + WISH MAGIC + AUDIO + INPUT CAPTION
    - Balanced: wiggly node-to-node trails
    - Brighter/Darker: node-influenced spiral (influence = 0.08)
    - Wish: type-on flash + sparkle burst + tilt + pop + 3 fonts
@@ -1740,34 +1740,103 @@ try { void getCtx(); } catch {}
     // --- 7) Export audio schedule (same as live) ---
     const t0 = ac.currentTime + 0.25;
 
-    const playExportOneShot = (at: number, name: string, mode: "normal" | "tick" = "normal", gainMax = 1) => {
-      loadBuffer(name)
-        .then((buf) => {
-          const src = ac.createBufferSource();
-          src.buffer = buf;
-          const g = ac.createGain();
+    const playExportOneShot = (
+  at: number,
+  name: string,
+  mode: "normal" | "tick" = "normal",
+  gainMax = 1,
+  dur?: number
+) => {
+  const buf = _buffers.get(name);
+  if (!buf) return;
 
-          if (mode === "tick") {
-            g.gain.setValueAtTime(0, at);
-            g.gain.linearRampToValueAtTime(0.45 * gainMax, at + 0.006);
-            g.gain.setTargetAtTime(0, at + 0.05, 0.05);
-          } else {
-            g.gain.setValueAtTime(0, at);
-            g.gain.linearRampToValueAtTime(1 * gainMax, at + 0.01);
-            g.gain.setTargetAtTime(0, at + 0.28, 0.08);
-          }
+  const src = ac.createBufferSource();
+  src.buffer = buf;
 
-          src.connect(g);
-          g.connect(exportDst);        // ✅ record audio
-          g.connect(ac.destination);   // ✅ also play live while exporting (optional)
+  const g = ac.createGain();
+  if (mode === "tick") {
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(0.95 * gainMax, at + 0.006);
+    g.gain.setTargetAtTime(0, at + 0.06, 0.05);
+  } else {
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(1.0 * gainMax, at + 0.01);
+    g.gain.setTargetAtTime(0, at + 0.22, 0.05);
+  }
 
-          try {
-            src.start(at);
-            src.stop(at + (mode === "tick" ? 0.12 : 0.3));
-          } catch {}
-        })
-        .catch(() => {});
-    };
+  src.connect(g);
+  g.connect(exportDst); // ✅ record
+  g.connect(ac.destination);
+
+  const stopAfter = dur ?? (mode === "tick" ? 0.14 : 0.30);
+  try {
+    src.start(at);
+    src.stop(at + stopAfter);
+  } catch {}
+};
+// ✅ Preload buffers needed for export (critical because playExportOneShot reads from _buffers)
+const preloadNames = new Set<string>();
+
+// Always preload tick source (C4)
+preloadNames.add(midiToNoteName(60));
+
+// Preload everything the export will schedule (notes & chroma)
+for (let segIdx = 0; segIdx < segments.length; segIdx++) {
+  const keyNow: KeyName = segments[segIdx];
+
+  for (let i = 0; i < schedule.length; i++) {
+    const tok = schedule[i]?.tok;
+    if (!tok) continue;
+
+    if (tok.kind === "toggle" || tok.kind === "intro") continue;
+
+    if (tok.kind === "resolve") {
+      preloadNames.add(midiToNoteName(degreeToMidi("5", keyNow, false)));
+      preloadNames.add(midiToNoteName(degreeToMidi("1", keyNow, false)));
+      continue;
+    }
+
+    if (tok.kind === "rest") continue;
+
+    if (tok.kind === "deg") {
+      const isLetter = !!(tok as any).srcChar;
+
+      if (isLetter) {
+        if (tok.up && tok.src === "8") {
+          preloadNames.add(midiToNoteName(degreeToMidi("1", keyNow, false)));
+          preloadNames.add(midiToNoteName(degreeToMidi("1", keyNow, true)));
+        } else if (tok.up && tok.src === "9") {
+          preloadNames.add(midiToNoteName(degreeToMidi("1", keyNow, false)));
+          preloadNames.add(midiToNoteName(degreeToMidi("2", keyNow, true)));
+        } else {
+          preloadNames.add(midiToNoteName(degreeToMidi(tok.d, keyNow, tok.up)));
+        }
+      } else {
+        if ("1234567".includes(tok.src)) {
+          const wrap = (n: number) => (["1","2","3","4","5","6","7"][(n - 1 + 7) % 7] as Diatonic);
+          const r = Number(tok.d);
+          const ds: Diatonic[] = [wrap(r), wrap(r + 2), wrap(r + 4)];
+          ds.forEach((d) => preloadNames.add(midiToNoteName(degreeToMidi(d, keyNow, false))));
+        } else if (tok.src === "8") {
+          preloadNames.add(midiToNoteName(degreeToMidi("3", keyNow, false)));
+          preloadNames.add(midiToNoteName(degreeToMidi("5", keyNow, false)));
+          preloadNames.add(midiToNoteName(degreeToMidi("1", keyNow, true)));
+        } else if (tok.src === "9") {
+          preloadNames.add(midiToNoteName(degreeToMidi("6", keyNow, false)));
+          preloadNames.add(midiToNoteName(degreeToMidi("2", keyNow, true)));
+          preloadNames.add(midiToNoteName(degreeToMidi("4", keyNow, true)));
+        }
+      }
+    } else if (tok.kind === "chroma") {
+      const pcOff = degreeToPcOffset(tok.c as any, keyNow);
+      const midi = snapPcToComfortableMidi(pcOff, keyNow, true);
+      preloadNames.add(midiToNoteName(midi));
+    }
+  }
+}
+
+// Decode them now (fills _buffers)
+await Promise.all(Array.from(preloadNames).map((n) => loadBuffer(n)));
 
     const scheduleIntroChordE = (at: number, key: KeyName) => {
       (["1", "3", "5"] as Diatonic[]).forEach((d, i) => {
@@ -1795,11 +1864,16 @@ try { void getCtx(); } catch {}
       playExportOneShot(at, midiToNoteName(degreeToMidi("2", key, true)), "normal", 0.9);
       playExportOneShot(at, midiToNoteName(degreeToMidi("4", key, true)), "normal", 0.9);
     };
-    const scheduleChromaE = (at: number, c: Chromatic, key: KeyName, tick: boolean) => {
-      const pcOff = degreeToPcOffset(c as any, key);
-      const midi = snapPcToComfortableMidi(pcOff, key, true);
-      playExportOneShot(at, midiToNoteName(midi), tick ? "tick" : "normal", 0.85);
-    };
+    const scheduleChromaE = (at: number, tok: Extract<Token, { kind: "chroma" }>, key: KeyName) => {
+  const pcOff = degreeToPcOffset(tok.c as any, key);
+  const midi = snapPcToComfortableMidi(pcOff, key, true);
+  const name = midiToNoteName(midi);
+
+  const isZeroChroma = (tok as any).src === "0";
+  const useTickEnv = isZeroChroma && zeroPolicy === "ticks";
+
+  playExportOneShot(at, name, useTickEnv ? "tick" : "normal", 0.85);
+};
     const scheduleLetterDegE = (at: number, tok: Extract<Token, { kind: "deg" }>, key: KeyName) => {
       if (tok.up && tok.src === "8") {
         playExportOneShot(at, midiToNoteName(degreeToMidi("1", key, false)), "normal", 0.9);
@@ -1842,9 +1916,7 @@ try { void getCtx(); } catch {}
             else if (tok.src === "9") scheduleSecondInvSupertonicE(at, keyNow);
           }
         } else if (tok.kind === "chroma") {
-  const isZeroChroma = (tok as any).src === "0";
-const useTickEnv = isZeroChroma && zeroPolicy === "ticks";
-scheduleChromaLive(ac, at, tok, keyNow);
+  scheduleChromaE(at, tok, keyNow);
 }
       }
     }
