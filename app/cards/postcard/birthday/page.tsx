@@ -91,7 +91,7 @@ const LAYOUTS: Record<
     defaultZeroPolicy: "chromatic",
     defaultAtmosphereOn: true,
     defaultAtmospherePreset: "bright",
-    allowedAtmospheres: ["bright", "soft", "playful"],
+    allowedAtmospheres: ["bright", "long"],
     demo: { style: "fireworks", bursts: 2 },
   },
 
@@ -105,8 +105,8 @@ const LAYOUTS: Record<
     defaultMood: "brighter",
     defaultZeroPolicy: "chromatic",
     defaultAtmosphereOn: true,
-    defaultAtmospherePreset: "soft",
-    allowedAtmospheres: ["bright", "soft", "playful"],
+    defaultAtmospherePreset: "long",
+    allowedAtmospheres: ["bright", "long"],
     demo: { style: "reveal" },
   },
 
@@ -120,8 +120,8 @@ const LAYOUTS: Record<
     defaultMood: "balanced",
     defaultZeroPolicy: "chromatic",
     defaultAtmosphereOn: true,
-    defaultAtmospherePreset: "playful",
-    allowedAtmospheres: ["bright", "soft", "playful"],
+    defaultAtmospherePreset: "long",
+    allowedAtmospheres: ["bright", "long"],
     demo: { style: "fireworks", bursts: 3 },
   },
 
@@ -135,8 +135,8 @@ const LAYOUTS: Record<
     defaultMood: "brighter",
     defaultZeroPolicy: "chromatic",
     defaultAtmosphereOn: true,
-    defaultAtmospherePreset: "soft",
-    allowedAtmospheres: ["bright", "soft", "playful"],
+    defaultAtmospherePreset: "long",
+    allowedAtmospheres: ["bright", "long"],
     demo: { style: "reveal" },
   },
 
@@ -151,7 +151,7 @@ const LAYOUTS: Record<
     defaultZeroPolicy: "chromatic",
     defaultAtmosphereOn: true,
     defaultAtmospherePreset: "bright",
-    allowedAtmospheres: ["bright", "soft", "playful"],
+    allowedAtmospheres: ["bright", "long"],
     demo: { style: "fireworks", bursts: 2 },
   },
 
@@ -165,8 +165,8 @@ const LAYOUTS: Record<
     defaultMood: "balanced",
     defaultZeroPolicy: "chromatic",
     defaultAtmosphereOn: true,
-    defaultAtmospherePreset: "soft",
-    allowedAtmospheres: ["bright", "soft", "playful"],
+    defaultAtmospherePreset: "long",
+    allowedAtmospheres: ["bright", "long"],
     demo: { style: "reveal" },
   },
 
@@ -181,7 +181,7 @@ const LAYOUTS: Record<
     defaultZeroPolicy: "chromatic",
     defaultAtmosphereOn: true,
     defaultAtmospherePreset: "bright",
-    allowedAtmospheres: ["bright", "soft", "playful"],
+    allowedAtmospheres: ["bright", "long"],
     demo: { style: "reveal" },
   },
 
@@ -196,7 +196,7 @@ const LAYOUTS: Record<
     defaultZeroPolicy: "chromatic",
     defaultAtmosphereOn: true,
     defaultAtmospherePreset: "bright",
-    allowedAtmospheres: ["bright", "soft", "playful"],
+    allowedAtmospheres: ["bright", "long"],
     demo: { style: "reveal" },
   },
 
@@ -210,8 +210,8 @@ const LAYOUTS: Record<
     defaultMood: "balanced",
     defaultZeroPolicy: "chromatic",
     defaultAtmosphereOn: true,
-    defaultAtmospherePreset: "playful",
-    allowedAtmospheres: ["bright", "soft", "playful"],
+    defaultAtmospherePreset: "long",
+    allowedAtmospheres: ["bright", "long"],
     demo: { style: "fireworks", bursts: 2 },
   },
 
@@ -225,8 +225,8 @@ const LAYOUTS: Record<
     defaultMood: "balanced",
     defaultZeroPolicy: "chromatic",
     defaultAtmosphereOn: true,
-    defaultAtmospherePreset: "playful",
-    allowedAtmospheres: ["bright", "soft", "playful"],
+    defaultAtmospherePreset: "long",
+    allowedAtmospheres: ["bright", "long"],
     demo: { style: "fireworks", bursts: 3 },
   },
 };
