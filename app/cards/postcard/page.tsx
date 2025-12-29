@@ -4,7 +4,8 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Musical Postcards – MusicalToys",
   description:
-    "Create musical postcards from dates and messages. Christmas, New Year, romantic and future themes with harmony, trails and motion.",
+    "Create musical postcards from dates and messages. Date we met, Birthday, New Year, Christmas and more themes with harmony, trails and motion.",
+  alternates: { canonical: "/cards/postcard" },
 };
 
 export default function PostcardHubPage() {
@@ -23,29 +24,39 @@ export default function PostcardHubPage() {
 
         {/* Live themes */}
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold tracking-tight">
-            Available now
-          </h2>
+          <h2 className="text-sm font-semibold tracking-tight">Available now</h2>
 
           <div className="grid gap-3 md:grid-cols-3">
-            {/* Christmas */}
+            {/* Date we met */}
             <a
-              href="/cards/postcard/xmas"
+              href="/cards/postcard/date-we-met"
               className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             >
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-red-600">
-                Christmas
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-pink-600">
+                Romantic
               </p>
-              <h3 className="text-sm font-semibold">
-                Christmas postcards
-              </h3>
+              <h3 className="text-sm font-semibold">The day we met</h3>
               <p className="mt-1 text-xs text-slate-600">
-                Festive backgrounds, glowing trails and fireworks. Your date or
-                message plays as a short musical moment.
+                A special date turned into a gentle, flowing musical postcard.
+                Designed for couples and shared memories.
               </p>
-              <p className="mt-2 text-[11px] text-slate-500">
-                Live now →
+              <p className="mt-2 text-[11px] text-slate-500">Live now →</p>
+            </a>
+
+            {/* Birthday */}
+            <a
+              href="/cards/postcard/birthday"
+              className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
+            >
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-teal-600">
+                Birthday
               </p>
+              <h3 className="text-sm font-semibold">Birthday postcards</h3>
+              <p className="mt-1 text-xs text-slate-600">
+                Festive backgrounds and joyful motion. Type a date or message,
+                play it, and send a musical wish.
+              </p>
+              <p className="mt-2 text-[11px] text-slate-500">Live now →</p>
             </a>
 
             {/* New Year */}
@@ -56,75 +67,61 @@ export default function PostcardHubPage() {
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-indigo-600">
                 New Year
               </p>
-              <h3 className="text-sm font-semibold">
-                New Year postcards
-              </h3>
+              <h3 className="text-sm font-semibold">New Year postcards</h3>
               <p className="mt-1 text-xs text-slate-600">
-                Midnight colors, celebratory motion and a clean musical
-                progression to mark the new beginning.
+                Midnight colors, celebratory motion and a clean musical moment
+                to mark the new beginning.
               </p>
-              <p className="mt-2 text-[11px] text-slate-500">
-                Live now →
-              </p>
+              <p className="mt-2 text-[11px] text-slate-500">Live now →</p>
             </a>
 
-            {/* Date we met */}
+            {/* Christmas */}
             <a
-              href="/cards/postcard/date-we-met"
+              href="/cards/postcard/xmas"
               className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             >
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-pink-600">
-                Romantic
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-red-600">
+                Christmas
               </p>
-              <h3 className="text-sm font-semibold">
-                The day we met
-              </h3>
+              <h3 className="text-sm font-semibold">Christmas postcards</h3>
               <p className="mt-1 text-xs text-slate-600">
-                A special date turned into a gentle, flowing musical postcard.
-                Designed for couples and shared memories.
+                Festive backgrounds, glowing trails and fireworks. Your date or
+                message plays as a short musical moment.
               </p>
-              <p className="mt-2 text-[11px] text-slate-500">
-                Live now →
-              </p>
+              <p className="mt-2 text-[11px] text-slate-500">Live now →</p>
             </a>
           </div>
         </section>
 
         {/* Coming soon */}
         <section className="mt-8 space-y-4">
-          <h2 className="text-sm font-semibold tracking-tight">
-            Coming soon
-          </h2>
+          <h2 className="text-sm font-semibold tracking-tight">Coming soon</h2>
 
           <div className="grid gap-3 md:grid-cols-3">
-            {/* Birthdays */}
+            {/* Wedding & anniversary */}
             <div className="rounded-2xl border border-slate-200 bg-white p-4 opacity-80">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-teal-600">
-                Birthdays
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-purple-600">
+                Weddings & anniversaries
               </p>
-              <h3 className="text-sm font-semibold">
-                Birthday postcards
-              </h3>
+              <h3 className="text-sm font-semibold">Wedding & “X years together”</h3>
               <p className="mt-1 text-xs text-slate-600">
-                A birthday date and a short wish transformed into a playful
-                musical postcard.
+                Wedding dates and relationship anniversaries with elegant motion
+                and warm atmosphere.
               </p>
               <span className="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">
                 Coming soon
               </span>
             </div>
 
-            {/* Weddings */}
+            {/* Stave / notation cards */}
             <div className="rounded-2xl border border-slate-200 bg-white p-4 opacity-80">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-purple-600">
-                Weddings
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                Notation
               </p>
-              <h3 className="text-sm font-semibold">
-                Wedding & anniversary
-              </h3>
+              <h3 className="text-sm font-semibold">Stave cards</h3>
               <p className="mt-1 text-xs text-slate-600">
-                Wedding dates and anniversaries with elegant motion and warm
-                harmony.
+                Your message shown as real music notation over themed
+                backgrounds.
               </p>
               <span className="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">
                 Coming soon
@@ -136,9 +133,7 @@ export default function PostcardHubPage() {
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                 Custom
               </p>
-              <h3 className="text-sm font-semibold">
-                Your own photo & style
-              </h3>
+              <h3 className="text-sm font-semibold">Your own photo & style</h3>
               <p className="mt-1 text-xs text-slate-600">
                 Upload your own image, pick motion and colors, and create a
                 fully personalized musical postcard.
