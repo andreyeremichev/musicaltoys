@@ -891,7 +891,10 @@ if (!urlOverridesRef.current.zero) setZeroPolicy(layout.defaultZeroPolicy);
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [layoutId]);
 
-  const textInk = PALETTE[textInkKey];
+  const textInk =
+  textColorMode === "custom"
+    ? PALETTE[textInkKey]
+    : PALETTE[layout.defaults.textInk];
   const trailA = PALETTE[trailAKey];
   const trailB = PALETTE[trailBKey];
 
@@ -2749,14 +2752,74 @@ placeholder="Your Own words go here... "    style={{
 
             {tweakOpen && (
               <div style={{ padding: "12px 14px 14px", display: "grid", gap: 16 }}>
-                <div style={{ display: "grid", gap: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.8 }}>Text</div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button type="button" onClick={() => setTextColorMode("custom")} style={pill(textColorMode === "custom")}>Text color</button>
-                    <button type="button" onClick={() => setTextColorMode("default")} style={pill(textColorMode === "default")}>Default</button>
-                  </div>
-                  <div style={{ fontSize: 11, opacity: 0.55 }}>(Still placeholder.)</div>
-                </div>
+               <div style={{ display: "grid", gap: 10 }}>
+  <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.8 }}>Text</div>
+
+  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+    <button
+      type="button"
+      onClick={() => setTextColorMode("default")}
+      style={pill(textColorMode === "default")}
+    >
+      Default
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setTextColorMode("custom")}
+      style={pill(textColorMode === "custom")}
+    >
+      Custom
+    </button>
+  </div>
+
+  {textColorMode === "custom" && (
+    <div style={{ display: "grid", gap: 6 }}>
+      <label style={{ display: "grid", gap: 4 }}>
+        <span style={{ fontSize: 11, fontWeight: 800, opacity: 0.7 }}>
+          Text color
+        </span>
+        <select
+          value={textInkKey}
+          onChange={(e) => setTextInkKey(e.target.value as PaletteKey)}
+          style={{
+            height: 36,
+            borderRadius: 10,
+            border: "1px solid #1E2935",
+            background: "#0F1821",
+            color: "#E6EBF2",
+            paddingInline: 10,
+            fontWeight: 800,
+            fontSize: 13,
+          }}
+        >
+          {(Object.keys(PALETTE) as PaletteKey[]).map((k) => (
+            <option key={k} value={k}>
+              {k}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <button
+        type="button"
+        onClick={() => setTextInkKey(layout.defaults.textInk)}
+        style={{
+          height: 34,
+          borderRadius: 10,
+          border: "1px solid #1E2935",
+          background: "transparent",
+          color: "rgba(230,235,242,0.85)",
+          fontWeight: 800,
+          fontSize: 12,
+          cursor: "pointer",
+        }}
+      >
+        Reset to background default
+      </button>
+    </div>
+  )}
+</div>
 
                 <div style={{ display: "grid", gap: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.8 }}>Motion</div>
