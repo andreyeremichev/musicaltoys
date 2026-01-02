@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Mountains_of_Christmas, Playfair_Display, Caveat } from "next/font/google";
-
+import ThemeNavHeader from "@/app/components/postcards/ThemeNavHeader";
 
 /* =========================================================
    Date-we-met Musical Postcard — LIVE TRAILS + WISH MAGIC + AUDIO + INPUT CAPTION
@@ -2362,10 +2362,15 @@ await Promise.all(Array.from(preloadNames).map((n) => loadBuffer(n)));
     }),
   }}
 />
-        <header style={{ textAlign: "center", paddingTop: 2 }}>
-          <div style={{ fontSize: 17, fontWeight: 950, letterSpacing: "0.01em" }}>Date we met Postcard</div>
-          <div style={{ fontSize: 12, opacity: 0.72 }}>Type anything. Press play. Send a wish.</div>
-        </header>
+        <ThemeNavHeader
+  theme={"date-we-met"}
+  title="The day we met"
+  subtitle="Type anything. Press play. Send a wish."
+  typed={typed}
+  onBeforeNavigate={() => {
+    if (isRunning) stopRun(false);
+  }}
+/>
 
         {/* Postcard */}
         <section style={{ width: "100%", display: "flex", justifyContent: "center" }}>

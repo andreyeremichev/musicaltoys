@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Mountains_of_Christmas, Playfair_Display, Caveat } from "next/font/google";
-
+import ThemeNavHeader from "@/app/components/postcards/ThemeNavHeader";
 
 /* =========================================================
    Birthday Musical Postcard — LIVE TRAILS + WISH MAGIC + AUDIO + INPUT CAPTION
@@ -2616,10 +2616,15 @@ if (showPulseOnly && mainStarted && fw.length === 0 && globalStep >= 0) {
     }),
   }}
 />
-        <header style={{ textAlign: "center", paddingTop: 2 }}>
-          <div style={{ fontSize: 17, fontWeight: 950, letterSpacing: "0.01em" }}>Birthday Postcard</div>
-          <div style={{ fontSize: 12, opacity: 0.72 }}>Type anything. Press play. Send a wish.</div>
-        </header>
+        <ThemeNavHeader
+  theme={"birthday"}
+  title="Birthday Postcard"
+  subtitle="Type anything. Press play. Send a wish."
+  typed={typed}
+  onBeforeNavigate={() => {
+    if (isRunning) stopRun(false);
+  }}
+/>
 
         {/* Postcard */}
         <section style={{ width: "100%", display: "flex", justifyContent: "center" }}>
