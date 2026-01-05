@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DEBUG_LIVE_AUDIO } from "@/lib/debugAudio";
+import ToyNavHeader from "@/app/components/toys/ToyNavHeader";
 
 /* =========================
    Locked-in in-file toggles
@@ -2269,7 +2270,7 @@ export default function KeyClockPage() {
         <section
           className="vt-panel minw0"
           style={{
-            border: `1px solid ${T.gold}`,
+            border: `1px solid ${T.border}`,
             borderRadius: 14,
             paddingTop: 12,
             paddingBottom: 12,
@@ -2278,10 +2279,22 @@ export default function KeyClockPage() {
             gap: 2,
           }}
         >
+        <ToyNavHeader
+  currentSlug="key-clock"
+  title="KeyClock"
+  q={raw}
+  onBeforeNavigate={() => {
+    try {
+      if (isPlaying) stop();
+    } catch {}
+  }}
+/>
+
+
+
+{/* Helper hint */}
           <div style={{ textAlign: "center", fontSize: 13, color: T.muted, paddingInline: 6 }}>
-            Type a <b>date or text</b>. Allowed: A–Z, 0–9,{" "}
-            <code style={{ background: "#0F1821", padding: "1px 4px", borderRadius: 6 }}>-</code> (rest). Letters use
-            T9.
+            Different moments feel different.
           </div>
 
           <form
@@ -2304,7 +2317,7 @@ export default function KeyClockPage() {
               onChange={(e) => {
                 setRaw(sanitizePhoneInput(e.target.value));
               }}
-              placeholder="October 21, 2025"
+              placeholder="Today 2026"
               inputMode="text"
               enterKeyHint="done"
               onKeyDown={onKeyDown}
@@ -2522,11 +2535,11 @@ export default function KeyClockPage() {
                   fontSize: 14,
                 }}
               >
-                <option value="pulse">Trails: Pulse only</option>
-                <option value="glow">Trails: Glow</option>
-                <option value="lines">Trails: Lines</option>
-                <option value="glow+confetti">Trails: Glow & Pulse</option>
-                <option value="lines+confetti">Trails: Lines & Pulse</option>
+                <option value="pulse">Motion: Pulse</option>
+<option value="glow">Motion: Glow</option>
+<option value="lines">Motion: Lines</option>
+<option value="glow+confetti">Motion: Breathing</option>
+<option value="lines+confetti">Motion: Pulsing Lines</option>
               </select>
 
               <select
@@ -2557,29 +2570,29 @@ export default function KeyClockPage() {
                   fontSize: 14,
                 }}
               >
-                <option value="chromatic">Zero (0): Chromatic color</option>
-                <option value="ticks">Zero (0): Ticks (short ♭2/♯4)</option>
-                <option value="rest">Zero (0): Rest (silent)</option>
+                <option value="chromatic">Zero (0): Sound</option>
+                <option value="ticks">Zero (0): Ticks</option>
+                <option value="rest">Zero (0): Rest</option>
               </select>
 
-              {/* 5) New picker: Major/Minor passes */}
               <select
-                value={passMode}
-                onChange={(e) => setPassMode(e.target.value as PassMode)}
-                style={{
-                  background: bg === "dark" ? "#0F1821" : "#F3F5F8",
-                  color: T.text,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 8,
-                  padding: "8px 10px",
-                  fontSize: 14,
-                }}
-              >
-                <option value="2M2m">Major/Minor: 2 major + 2 minor</option>
-                <option value="3M">Major/Minor: 3 major</option>
-                <option value="3m">Major/Minor: 3 minor</option>
-                <option value="2m2M">Major/Minor: 2 minor + 2 major</option>
-              </select>
+  value={passMode}
+  onChange={(e) => setPassMode(e.target.value as PassMode)}
+  style={{
+    background: bg === "dark" ? "#0F1821" : "#F3F5F8",
+    color: T.text,
+    border: `1px solid ${T.border}`,
+    borderRadius: 8,
+    padding: "8px 10px",
+    fontSize: 14,
+  }}
+>
+  <option value="3M">Mood: Brighter</option>
+  <option value="3m">Mood: Darker</option>
+  <option value="2M2m">Mood: Balanced</option>
+  <option value="2M2m">Mood: Balanced (Brighter → Darker)</option>
+  <option value="2m2M">Mood: Balanced (Darker → Brighter)</option>
+</select>
             </div>
 
             {/* 2) + 3) New tiny toggles under pickers at the bottom: "R" and "H" */}

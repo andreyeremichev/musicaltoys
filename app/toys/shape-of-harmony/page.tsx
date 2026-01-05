@@ -11,6 +11,7 @@ import {
   tweenBetween,
 } from "@/lib/harmony/matchVoiceLeading";
 import { playProgression } from "@/lib/harmony/audio";
+import ToyNavHeader from "@/app/components/toys/ToyNavHeader";
 
 /* =========================
    Theme (Dark + Light)
@@ -991,7 +992,7 @@ a.remove();
         <section
           className="vt-panel minw0"
           style={{
-            border: `1px solid ${T.gold}`,
+            border: `1px solid ${T.border}`,
             borderRadius: 14,
             paddingTop: 12,
             paddingBottom: 12,
@@ -1000,17 +1001,28 @@ a.remove();
             gap: 10,
           }}
         >
-          {/* Title */}
-          <div
-            style={{
-              textAlign: "center",
-              fontSize: 24,
-              fontWeight: 700,
-              lineHeight: 1.15,
-            }}
-          >
-            Shape of Harmony
-          </div>
+          <ToyNavHeader
+  currentSlug="shape-of-harmony"
+  title="Shape of Harmony"
+  q={""}
+  onBeforeNavigate={() => {
+    /* stop playback if running */
+  }}
+/>
+
+<div
+  style={{
+    margin: "2px 0 10px",
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 1.3,
+    fontWeight: 500,
+    color: T.muted,
+    letterSpacing: 0.2,
+  }}
+>
+  Your chords as shapes
+</div>
 
           {/* Input + Play/Stop */}
           <form

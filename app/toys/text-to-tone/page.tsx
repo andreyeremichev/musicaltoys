@@ -12,6 +12,7 @@ import { buildPhonemeEvents } from "@/lib/text-to-tone/buildPhonemeEvents";
 
 import { logLiveAudioDebug, logExportAudioDebug } from "@/lib/debugAudio";
 import { DEBUG_LIVE_AUDIO } from "@/lib/debugAudio";
+import ToyNavHeader from "@/app/components/toys/ToyNavHeader";
 
 /* =========================
    Theme / constants
@@ -28,7 +29,7 @@ const theme = {
   phonemeBg: "#3B5BDB",   // indigo blue
   phonemeBorder: "#4C6EF5"
 };
-const MAX_ELEMENTS = 20;
+const MAX_ELEMENTS = 25;
 
 
 // Time tolerances
@@ -1631,21 +1632,29 @@ if (helperOn) drawNowPlayingLabel(nowSec);
           maxWidth: 520,
         }}
       >
-        {/* Title */}
-        <h1
-          style={{
-            margin: "4px 0 8px",
-            fontSize: 24,
-            lineHeight: 1.25,
-            textAlign: "center",
-            letterSpacing: 0.2,
-            fontWeight: 800,
-            color: theme.text,
-          }}
-        >
-          TextToTone — Type Anything, Hear the Music
-        </h1>
-
+               <ToyNavHeader
+  currentSlug="text-to-tone"
+  title="TextToTone"
+  q={phrase}
+  onBeforeNavigate={() => {
+    try {
+      if (isPlaying) stop();
+    } catch {}
+  }}
+/>
+<div
+  style={{
+    margin: "2px 0 10px",
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 1.3,
+    fontWeight: 500,
+    color: theme.muted,
+    letterSpacing: 0.2,
+  }}
+>
+  Your phrase, played as sound
+</div>
         <section
           style={{
             background: theme.card,
@@ -1691,7 +1700,7 @@ if (helperOn) drawNowPlayingLabel(nowSec);
                 onBlur={() => {
                   if (!isPlaying && !overLimit) start();
                 }}
-                placeholder="Type words, numbers, and symbols…"
+                placeholder="Type something…"
                 inputMode="text"
                 enterKeyHint="done"
                 autoCapitalize="characters"
@@ -1721,7 +1730,7 @@ if (helperOn) drawNowPlayingLabel(nowSec);
                 marginTop: 4,
               }}
             >
-              Elements: {elementCount} / 20{" "}
+              Elements: {elementCount} / 25{" "}
               {overLimit ? " — Limit exceeded. Trim your text." : ""}
             </div>
 
@@ -1800,7 +1809,7 @@ if (helperOn) drawNowPlayingLabel(nowSec);
       cursor: "pointer",
     }}
   >
-    As Letters
+    Written
   </button>
   <button
     onClick={() => setModeInUrl("ipa")}
@@ -1818,7 +1827,7 @@ if (helperOn) drawNowPlayingLabel(nowSec);
       cursor: "pointer",
     }}
   >
-    As Phonemes
+    Spoken
   </button>
 </div>
 

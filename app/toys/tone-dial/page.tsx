@@ -1,6 +1,7 @@
  "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ToyNavHeader from "@/app/components/toys/ToyNavHeader";
 
 // In-file only (no UI): show/hide 2nd caption line (degrees/chords)
 const SHOW_DEGREES_CAPTION_LINE = false;
@@ -2262,7 +2263,7 @@ updateAndDrawConfetti(c, dtSec);
         <section
           className="vt-panel minw0"
           style={{
-            border: `1px solid ${T.gold}`,
+            border: `1px solid ${T.border}`,
             borderRadius: 14,
             paddingTop: 12,
             paddingBottom: 12,
@@ -2271,14 +2272,27 @@ updateAndDrawConfetti(c, dtSec);
             gap: 6, // tightened so the full page fits better
           }}
         >
-          <div style={{ textAlign: "center", fontSize: 13, color: T.muted, paddingInline: 6 }}>
-            Type a phone number. Allowed: A–Z, 0–9,{" "}
-            <code style={{ background: "#0F1821", padding: "1px 4px", borderRadius: 6 }}>+</code>,{" "}
-            <code style={{ background: "#0F1821", padding: "1px 4px", borderRadius: 6 }}>#</code>,{" "}
-            <code style={{ background: "#0F1821", padding: "1px 4px", borderRadius: 6 }}>*</code>, and{" "}
-            <code style={{ background: "#0F1821", padding: "1px 4px", borderRadius: 6 }}>-</code> (rest). Letters use T9
-            (e.g., 1-800-HELLO).
-          </div>
+          <ToyNavHeader
+  currentSlug="tone-dial"
+  title="ToneDial"
+  q={raw}
+  onBeforeNavigate={() => {
+    /* stop playback if running */
+  }}
+/>
+<div
+  style={{
+    margin: "2px 0 10px",
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 1.3,
+    fontWeight: 500,
+    color: T.muted,
+    letterSpacing: 0.2,
+  }}
+>
+  Each number feels different
+</div>
 
           <form
             className="minw0"
@@ -2294,7 +2308,7 @@ updateAndDrawConfetti(c, dtSec);
   setRaw(sanitizePhoneInput(e.target.value));
   if (SHOW_DEGREES_CAPTION_LINE) setShowTransformHelper(true);
 }}
-              placeholder="+49 171-HELLO#*"
+              placeholder="+1-800 HI*THERE"
               inputMode="text"
               enterKeyHint="done"
               onKeyDown={onKeyDown}
@@ -2491,7 +2505,7 @@ updateAndDrawConfetti(c, dtSec);
                   fontSize: 14,
                 }}
               >
-                💾 <span className="action-text">Download</span>
+                💾 <span className="action-text">Save</span>
               </button>
               <button
                 onClick={() => setShareOpen(true)}
@@ -2528,11 +2542,11 @@ updateAndDrawConfetti(c, dtSec);
                   fontSize: 14,
                 }}
               >
-                <option value="pulse">Trails: Pulse only</option>
-                <option value="glow">Trails: Glow</option>
-                <option value="lines">Trails: Lines</option>
-                <option value="glow+confetti">Trails: Glow & Confetti</option>
-                <option value="lines+confetti">Trails: Lines & Confetti</option>
+                <option value="pulse">Motion: Pulse</option>
+                <option value="glow">Motion: Glow</option>
+                <option value="lines">Motion: Lines</option>
+                <option value="glow+confetti">Motion: Glow & Confetti</option>
+                <option value="lines+confetti">Motion: Lines & Confetti</option>
               </select>
 
               <select
@@ -2563,29 +2577,29 @@ updateAndDrawConfetti(c, dtSec);
                   fontSize: 14,
                 }}
               >
-                <option value="chromatic">Zero (0): Chromatic color</option>
-                <option value="ticks">Zero (0): Ticks (short ♭2/♯4)</option>
+                <option value="chromatic">Zero (0): Sound</option>
+                <option value="ticks">Zero (0): Ticks</option>
                 <option value="rest">Zero (0): Rest</option>
               </select>
 
-              {/* NEW: Major/Minor passes */}
               <select
-                value={passMode}
-                onChange={(e) => setPassMode(e.target.value as PassMode)}
-                style={{
-                  background: bg === "dark" ? "#0F1821" : "#F3F5F8",
-                  color: T.text,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 8,
-                  padding: "8px 10px",
-                  fontSize: 14,
-                }}
-              >
-                <option value="2M2m">Major/Minor: 2 major + 2 minor</option>
-                <option value="3M">Major/Minor: 3 major</option>
-                <option value="3m">Major/Minor: 3 minor</option>
-                <option value="2m2M">Major/Minor: 2 minor + 2 major</option>
-              </select>
+  value={passMode}
+  onChange={(e) => setPassMode(e.target.value as PassMode)}
+  style={{
+    background: bg === "dark" ? "#0F1821" : "#F3F5F8",
+    color: T.text,
+    border: `1px solid ${T.border}`,
+    borderRadius: 8,
+    padding: "8px 10px",
+    fontSize: 14,
+  }}
+>
+  <option value="3M">Mood: Brighter</option>
+  <option value="3m">Mood: Darker</option>
+  <option value="2M2m">Mood: Balanced</option>
+  <option value="2M2m">Mood: Balanced (Brighter → Darker)</option>
+  <option value="2m2M">Mood: Balanced (Darker → Brighter)</option>
+</select>
             </div>
 
             {/* NEW: R / H toggles (gray) */}
