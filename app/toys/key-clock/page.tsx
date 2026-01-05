@@ -2283,11 +2283,7 @@ export default function KeyClockPage() {
   currentSlug="key-clock"
   title="KeyClock"
   q={raw}
-  onBeforeNavigate={() => {
-    try {
-      if (isPlaying) stop();
-    } catch {}
-  }}
+   
 />
 
 
