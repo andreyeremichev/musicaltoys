@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /* =========================
-   Primary navigation (structure)
+   Primary navigation (entry points)
 ========================= */
 const PRIMARY_NAV = [
-  { href: "/toys", label: "Toys" },
-  { href: "/cards", label: "Cards" },
+  { href: "/toys/text-to-tone", label: "Toys" },
+  { href: "/cards/postcard/birthday", label: "Postcards" },
 ];
 
 /* =========================
@@ -28,12 +28,11 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto w-full max-w-6xl px-4 md:px-8">
-
         {/* =========================
             ROW 1 — Brand + Primary nav
         ========================= */}
         <div className="flex h-14 items-center justify-between md:h-16">
-          {/* Brand */}
+          {/* Brand (Home) */}
           <Link href="/" className="flex items-center gap-2">
             <img
               src="/brand/musicaltoys-logo.svg"
@@ -67,7 +66,7 @@ export function SiteHeader() {
         </div>
 
         {/* =========================
-            ROW 2 — Secondary (quiet)
+            ROW 2 — Secondary (quiet context)
         ========================= */}
         <div className="flex items-center gap-4 pb-2 pt-1 text-xs sm:text-sm">
           {SECONDARY_NAV.map((item) => {
