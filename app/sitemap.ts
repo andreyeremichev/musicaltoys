@@ -47,6 +47,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily",
       priority: 0.4,
     },
+    {
+  url: `${base}/fireplace`,
+  lastModified: now,
+  changeFrequency: "weekly",
+  priority: 0.4,
+},
 
     // Hubs
     {

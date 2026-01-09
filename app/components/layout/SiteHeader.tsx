@@ -16,6 +16,7 @@ const PRIMARY_NAV = [
 ========================= */
 const SECONDARY_NAV = [
   { href: "/today", label: "Today" },
+  { href: "/fireplace", label: "Fireplace" },
   { href: "/calendar", label: "Calendar" },
 ];
 

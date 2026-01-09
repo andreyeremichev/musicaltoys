@@ -46,7 +46,7 @@ type HomeMoment = {
   href: string;
   labelSr: string; // invisible identity anchor for crawlers + accessibility
   caption: string; // exactly one line
-  kind: "today" | "texttotone" | "postcards" | "calendar";
+    kind: "today" | "fireplace" | "texttotone" | "postcards" | "calendar";
 };
 
 const HOME_MOMENTS: HomeMoment[] = [
@@ -56,6 +56,13 @@ const HOME_MOMENTS: HomeMoment[] = [
     labelSr: "Today — a daily musical moment",
     caption: "A daily musical moment.",
     kind: "today",
+  },
+    {
+    id: "fireplace",
+    href: "/fireplace",
+    labelSr: "Fireplace — a calm fire fed by numbers",
+    caption: "A calm fire fed by numbers — irrational numbers, turned into sound and flame.",
+    kind: "fireplace",
   },
   {
     id: "toys",
@@ -155,6 +162,75 @@ function TodayPresence() {
           A quiet window into the day.
         </div>
       </div>
+    </div>
+  );
+}
+function FireplacePresence() {
+  return (
+    <div className="relative h-full w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950" />
+
+      {/* ember glow */}
+      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_35%_70%,rgba(251,113,133,0.35),transparent_55%),radial-gradient(circle_at_65%_75%,rgba(250,204,21,0.32),transparent_55%),radial-gradient(circle_at_50%_55%,rgba(56,189,248,0.16),transparent_60%)]" />
+
+      {/* Stable 3-row layout */}
+      <div className="relative grid h-full grid-rows-[auto_1fr_auto] p-5">
+        {/* TOP */}
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-300/80">
+            Fireplace
+          </div>
+          <div className="mt-1 text-xl font-semibold tracking-tight text-white/90">
+            Irrational flames
+          </div>
+        </div>
+
+        {/* MIDDLE */}
+        <div className="mt-4 grid place-items-center overflow-hidden">
+          <svg viewBox="0 0 520 220" className="h-full w-full" aria-hidden="true">
+            {/* gentle “flame” ribbons */}
+            <path
+              d="M40,170 C120,40 170,210 250,70 C320,10 360,190 470,60"
+              fill="none"
+              stroke="rgba(250, 204, 21, 0.45)"
+              strokeWidth="10"
+              strokeLinecap="round"
+              className="animate-[flame_7s_ease-in-out_infinite]"
+            />
+            <path
+              d="M60,178 C150,60 200,210 280,90 C340,30 390,170 480,80"
+              fill="none"
+              stroke="rgba(251, 113, 133, 0.32)"
+              strokeWidth="14"
+              strokeLinecap="round"
+              className="animate-[flame_8.5s_ease-in-out_infinite]"
+            />
+            <path
+              d="M30,185 C110,80 190,220 260,115 C330,50 395,175 500,105"
+              fill="none"
+              stroke="rgba(56, 189, 248, 0.18)"
+              strokeWidth="16"
+              strokeLinecap="round"
+              className="animate-[flame_10s_ease-in-out_infinite]"
+            />
+          </svg>
+        </div>
+
+        {/* BOTTOM */}
+        <div className="pt-4">
+          <div className="h-px w-full bg-white/10" />
+          <div className="mt-3 text-sm text-slate-200/80">
+            A calm fire fed by numbers.
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes flame {
+          0%, 100% { transform: translateY(0px) scaleX(1); opacity: 0.9; }
+          50% { transform: translateY(-6px) scaleX(1.02); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -412,6 +488,7 @@ function CalendarPresence() {
 
 function MomentSurface({ kind }: { kind: HomeMoment["kind"] }) {
   if (kind === "today") return <TodayPresence />;
+  if (kind === "fireplace") return <FireplacePresence />;
   if (kind === "texttotone") return <TextToTonePresence />;
   if (kind === "postcards") return <PostcardsPresence />;
   return <CalendarPresence />;
