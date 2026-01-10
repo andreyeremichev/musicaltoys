@@ -18,12 +18,7 @@ export default function IrrationalFireplacePage() {
     <div className="fixed inset-0 overflow-hidden bg-black">
       {/* Keep your header offset here (top-16) */}
       <div className="absolute left-0 right-0 top-16 bottom-0 overflow-hidden">
-        <img
-          src="/fireplace.jpg"
-          alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-          draggable={false}
-        />
+        
 
         <FireplaceCanvas
           started={started}
