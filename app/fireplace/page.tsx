@@ -121,35 +121,36 @@ export default function IrrationalFireplacePage() {
 </div>
 
               <button
-                onClick={() => {
-                  // Prime audio in the gesture handler (Safari-friendly)
-                  try {
-                    const a = new Audio("/audio/notes/C4.wav");
-                    a.volume = 0.001;
-                    a.play()
-                      .then(() => {
-                        a.pause();
-                        a.currentTime = 0;
-                      })
-                      .catch(() => {});
-                  } catch {}
+  onClick={() => {
+    // Prime audio in the gesture handler
+    try {
+      const a = new Audio("/audio/notes/C4.wav");
+      a.volume = 0.001;
+      a.play()
+        .then(() => {
+          a.pause();
+          a.currentTime = 0;
+        })
+        .catch(() => {});
+    } catch {}
 
-                  setSoundOn(true);
-                  setStarted(true);
-                }}
-                className="mt-4 w-full rounded-xl border border-amber-400/40
-           bg-gradient-to-b from-amber-500/80 to-amber-600/80
-           px-4 py-3 text-white
-           shadow-[0_0_24px_rgba(245,158,11,0.35)]
-           hover:from-amber-500 hover:to-amber-600
-           active:scale-[0.99] transition"
-              >
-                ▶ Play (10 minutes)
-              </button>
+    setSoundOn(true);
+    setStarted(true);
+  }}
+  className="mt-4 w-full rounded-xl border border-amber-400/40
+             bg-gradient-to-b from-amber-500/80 to-amber-600/80
+             px-4 py-3 text-white
+             shadow-[0_0_24px_rgba(245,158,11,0.35)]
+             hover:from-amber-500 hover:to-amber-600
+             active:scale-[0.99] transition"
+>
+  ▶ Play (10 minutes)
+</button>
 
-              <div className="mt-2 text-xs text-white/45">
-                After play starts, the room goes quiet.
-              </div>
+<div className="mt-2 text-xs text-white/55">
+  The first moments may sound uneven while audio settles.  
+  Give it a little time — it becomes calm.
+</div>
             </div>
           </div>
         )}
