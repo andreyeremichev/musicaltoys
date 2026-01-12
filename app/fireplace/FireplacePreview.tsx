@@ -188,8 +188,9 @@ export default function FireplacePreview({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const ctx0 = canvas.getContext("2d");
+if (!ctx0) return;
+const ctx = ctx0; // now ctx is non-null for TS
 
     let raf = 0;
     let tickId: number | null = null;
@@ -197,22 +198,25 @@ export default function FireplacePreview({
     let logs: Log[] = [];
 
     function resize() {
-      const parent = canvas.parentElement;
-      if (!parent) return;
+  const c = canvasRef.current;
+  if (!c) return;
 
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      const rect = parent.getBoundingClientRect();
-      const w = Math.max(1, Math.floor(rect.width));
-      const h = Math.max(1, Math.floor(rect.height));
+  const parent = c.parentElement;
+  if (!parent) return;
 
-      canvas.width = Math.floor(w * dpr);
-      canvas.height = Math.floor(h * dpr);
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const rect = parent.getBoundingClientRect();
+  const w = Math.max(1, Math.floor(rect.width));
+  const h = Math.max(1, Math.floor(rect.height));
 
-      logs = computeLogs(w, h);
-    }
+  c.width = Math.floor(w * dpr);
+  c.height = Math.floor(h * dpr);
+  c.style.width = `${w}px`;
+  c.style.height = `${h}px`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  logs = computeLogs(w, h);
+}
 
     resize();
     window.addEventListener("resize", resize);
@@ -239,11 +243,14 @@ export default function FireplacePreview({
     }, TICK_MS);
 
     function draw() {
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      const w = canvas.width / dpr;
-      const h = canvas.height / dpr;
+  const c = canvasRef.current;
+  if (!c) return;
 
-      ctx.clearRect(0, 0, w, h);
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = c.width / dpr;
+  const h = c.height / dpr;
+
+  ctx.clearRect(0, 0, w, h);
 
       const box = computeFireplaceBox(w, h);
 
@@ -314,7 +321,7 @@ export default function FireplacePreview({
     draw();
 
     return () => {
-      if (tickId) window.clearInterval(tickId);
+      if (tickId !== null) window.clearInterval(tickId);
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
     };
