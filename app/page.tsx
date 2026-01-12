@@ -1,6 +1,7 @@
 // app/page.tsx
 import type { Metadata } from "next";
 import Link from "next/link";
+import FireplacePreview from "@/app/fireplace/FireplacePreview";
 
 /*
   Home philosophy:
@@ -61,7 +62,7 @@ const HOME_MOMENTS: HomeMoment[] = [
     id: "fireplace",
     href: "/fireplace",
     labelSr: "Fireplace — a calm fire fed by numbers",
-    caption: "A calm fire fed by numbers — irrational numbers, turned into sound and flame.",
+    caption: "Enter a calm fire fed by numbers.",
     kind: "fireplace",
   },
   {
@@ -82,7 +83,7 @@ const HOME_MOMENTS: HomeMoment[] = [
     id: "calendar",
     href: "/calendar",
     labelSr: "Calendar — one small shift from the past, turned into sound",
-    caption: "One small shift from the past, turned into sound.",
+    caption: "See how a day from the past becomes sound.",
     kind: "calendar",
   },
 ];
@@ -159,7 +160,7 @@ function TodayPresence() {
       <div className="absolute bottom-5 left-5 right-5">
         <div className="h-px w-full bg-slate-100" />
         <div className="mt-3 text-sm text-slate-600">
-          A quiet window into the day.
+          A musical window into the day.
         </div>
       </div>
     </div>
@@ -174,53 +175,29 @@ function FireplacePresence() {
       <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_35%_70%,rgba(251,113,133,0.35),transparent_55%),radial-gradient(circle_at_65%_75%,rgba(250,204,21,0.32),transparent_55%),radial-gradient(circle_at_50%_55%,rgba(56,189,248,0.16),transparent_60%)]" />
 
       {/* Stable 3-row layout */}
-      <div className="relative grid h-full grid-rows-[auto_1fr_auto] p-5">
+      <div className="relative grid h-full grid-rows-[auto_minmax(0,1fr)_auto] p-5">
         {/* TOP */}
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-300/80">
             Fireplace
           </div>
           <div className="mt-1 text-xl font-semibold tracking-tight text-white/90">
-            Irrational flames
+            Four Fires
           </div>
         </div>
 
         {/* MIDDLE */}
-        <div className="mt-4 grid place-items-center overflow-hidden">
-          <svg viewBox="0 0 520 220" className="h-full w-full" aria-hidden="true">
-            {/* gentle “flame” ribbons */}
-            <path
-              d="M40,170 C120,40 170,210 250,70 C320,10 360,190 470,60"
-              fill="none"
-              stroke="rgba(250, 204, 21, 0.45)"
-              strokeWidth="10"
-              strokeLinecap="round"
-              className="animate-[flame_7s_ease-in-out_infinite]"
-            />
-            <path
-              d="M60,178 C150,60 200,210 280,90 C340,30 390,170 480,80"
-              fill="none"
-              stroke="rgba(251, 113, 133, 0.32)"
-              strokeWidth="14"
-              strokeLinecap="round"
-              className="animate-[flame_8.5s_ease-in-out_infinite]"
-            />
-            <path
-              d="M30,185 C110,80 190,220 260,115 C330,50 395,175 500,105"
-              fill="none"
-              stroke="rgba(56, 189, 248, 0.18)"
-              strokeWidth="16"
-              strokeLinecap="round"
-              className="animate-[flame_10s_ease-in-out_infinite]"
-            />
-          </svg>
-        </div>
+        <div className="mt-4 grid min-h-0 place-items-center overflow-hidden">
+  <div className="h-full w-full">
+    <FireplacePreview className="h-full w-full" />
+  </div>
+</div>
 
         {/* BOTTOM */}
         <div className="pt-4">
           <div className="h-px w-full bg-white/10" />
           <div className="mt-3 text-sm text-slate-200/80">
-            A calm fire fed by numbers.
+            Different numbers. Different moods. Same calm.
           </div>
         </div>
       </div>
@@ -540,12 +517,21 @@ export default function HomePage() {
       <h1 className="sr-only">
         MusicalToys — playful sound experiences from words, dates and numbers
       </h1>
+      {/* Home framing (quiet but clear) */}
+<div className="mx-auto w-full max-w-6xl px-4 pt-2 md:px-8">
+  <p className="text-sm text-slate-600">
+    <strong>Each window is a live experience. </strong>Step into one.
+  </p>
+</div>
 
       <div className="mx-auto w-full max-w-6xl px-4 pb-16 pt-6 md:px-8 md:pt-10">
         {/* Vertical journey */}
         <div className="flex flex-col gap-16">
           {HOME_MOMENTS.map((m, idx) => (
-  <section key={m.id} className="min-h-[48svh]">
+  <section
+  key={m.id}
+  className={m.kind === "fireplace" ? "min-h-[64svh]" : "min-h-[48svh]"}
+>
               <Link
                 href={m.href}
                 className="group block h-full"
@@ -554,7 +540,7 @@ export default function HomePage() {
                 {/* Identity anchor (invisible) */}
                 <h2 className="sr-only">{m.labelSr}</h2>
 
-                <div className="h-[38svh]">
+                <div className={m.kind === "fireplace" ? "h-[54svh]" : "h-[38svh]"}>
   <MomentSurface kind={m.kind} />
 </div>
 
