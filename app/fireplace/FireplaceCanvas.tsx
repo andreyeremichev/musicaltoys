@@ -37,6 +37,8 @@ const C_MINOR_MAP: Record<number, string> = {
   9: "D5",
 };
 
+
+
 function noteForDigit(d: number, mode: ScaleMode) {
   if (d === 0) return null;
   return mode === "BB_MAJOR" ? BB_MAJOR_MAP[d] : C_MINOR_MAP[d];
@@ -46,6 +48,29 @@ function noteUrl(noteName: string) {
   // encode '#' for filenames like A#3.wav
   const safe = noteName.replace("#", "%23");
   return `/audio/notes/${safe}.wav`;
+}
+function logIndexForDigit(digitNum: number, mode: "BB_MAJOR" | "C_MINOR"): number | null {
+  // Logs left→right indices:
+  // 0:b6, 1:b3, 2:b7, 3:4, 4:1, 5:5, 6:2, 7:6, 8:3, 9:7
+
+  if (digitNum === 0) return null;
+
+  // Octave loops
+  if (digitNum === 8) digitNum = 1;
+  if (digitNum === 9) digitNum = 2;
+
+  // Shared degrees
+  if (digitNum === 1) return 4; // 1
+  if (digitNum === 2) return 6; // 2
+  if (digitNum === 4) return 3; // 4
+  if (digitNum === 5) return 5; // 5
+
+  // Degrees that flip to flats in minor
+  if (digitNum === 3) return mode === "C_MINOR" ? 1 : 8; // b3 vs 3
+  if (digitNum === 6) return mode === "C_MINOR" ? 0 : 7; // b6 vs 6
+  if (digitNum === 7) return mode === "C_MINOR" ? 2 : 9; // b7 vs 7
+
+  return null;
 }
 
 function playSampleCached(cache: Map<string, HTMLAudioElement>, note: string, volume = 0.9) {
@@ -116,7 +141,7 @@ function playModeSwitchCrackle(
 
 
 type Log = { x: number; y: number; color: string };
-type Flame = { bornAt: number; digit: number; seed: number };
+type Flame = { bornAt: number; digit: number; seed: number; accent?: boolean };
 
 // ---------------- utils ----------------
 
@@ -239,7 +264,8 @@ function drawFlame(
   life: number,
   color: string,
   seed: number,
-  widthScale: number
+  widthScale: number,
+  accent: boolean
 ) {
   const sway =
     Math.sin(age * (2 + rand01(seed) * 1.2)) * 8 +
@@ -263,10 +289,11 @@ function drawFlame(
   }
 
   ctx.save();
+  const accentMul = accent ? 1.22 : 1.0;
 
   // outer
   ctx.fillStyle = color;
-  ctx.globalAlpha = 0.12 + life * 0.55;
+  ctx.globalAlpha = (0.12 + life * 0.55) * accentMul;
   ctx.beginPath();
   ctx.moveTo(pts[0].x - pts[0].w, pts[0].y);
   for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x - pts[i].w, pts[i].y);
@@ -292,9 +319,9 @@ function drawFlame(
   ctx.globalCompositeOperation = "source-over";
 
   // contour
-  ctx.globalAlpha = 0.25 + life * 0.45;
+  ctx.globalAlpha = (0.25 + life * 0.45) * accentMul;
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1.2 + life;
+  ctx.lineWidth = (1.2 + life) * (accent ? 1.12 : 1.0);
   ctx.stroke();
 
   ctx.restore();
@@ -539,7 +566,7 @@ const digitNum = Number(ch);
 
   // Balanced-only: 20 steps Bb Major, then 20 steps C minor, repeat
   const mode: ScaleMode =
-    Math.floor(globalStepRef.current / 20) % 2 === 0 ? "BB_MAJOR" : "C_MINOR";
+  Math.floor(globalStepRef.current / 20) % 2 === 0 ? "BB_MAJOR" : "C_MINOR";
 
   
   // advance within the digit string (loop if shorter)
@@ -578,17 +605,23 @@ if (revealDigitsRef.current.length < 3) {
   }
 }
 
-  // --- FLAME UPDATE (only if non-zero) ---
-  if (digitNum !== 0) {
-    const logIndex = digitNum % 10; // TEMP mapping; later degree->log mapping
-    const q = flamesRef.current[logIndex];
-    q.push({
-      bornAt: performance.now(),
-      digit: digitNum,
-      seed: stepRef.current * 991 + digitNum * 131,
-    });
-    if (q.length > MAX_FLAMES_PER_LOG) q.shift();
-  }
+  // --- FLAME UPDATE (mode-aware CoF mapping; 0 emits no flame) ---
+const logIndex = logIndexForDigit(digitNum, mode);
+if (logIndex !== null) {
+  const q = flamesRef.current[logIndex];
+
+  const isMinorBlock = mode === "C_MINOR";
+  const isFlatDegree = isMinorBlock && (digitNum === 3 || digitNum === 6 || digitNum === 7);
+
+  q.push({
+    bornAt: performance.now(),
+    digit: digitNum,
+    seed: stepRef.current * 991 + digitNum * 131,
+    accent: isFlatDegree,
+  });
+
+  if (q.length > MAX_FLAMES_PER_LOG) q.shift();
+}
 
   globalStepRef.current++;
 }, TICK_MS);
@@ -645,7 +678,8 @@ if (revealDigitsRef.current.length < 3) {
             life,
             log.color,
             f.seed,
-            1.0
+            1.0,
+            !!f.accent
           );
 
           if (c > 0) {
@@ -658,7 +692,8 @@ if (revealDigitsRef.current.length < 3) {
               life * 0.95,
               log.color,
               f.seed + 999,
-              0.85
+              0.85,
+              !!f.accent
             );
           }
         });
