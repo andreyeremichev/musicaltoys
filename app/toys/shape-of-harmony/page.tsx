@@ -464,19 +464,11 @@ rafRef.current = requestAnimationFrame(loopFn);
   }
 
   function onStop() {
-  // Build final constellation paths (same logic as RAF ending)
   const finals = chords.map((c) => {
     const idxs = c.pcs.slice().sort((a, b) => a - b);
     return pathFromIndices(idxs);
   });
-function restartPlayback() {
-  // Visual stop (audio is not canceled by design)
-  onStop();
-  // Start new selection on next tick so state updates settle
-  setTimeout(() => {
-    onPlay();
-  }, 0);
-}
+
   setFinalPaths(finals);
   setPlaying(false);
   setHighlightRoot(null);
@@ -487,6 +479,15 @@ function restartPlayback() {
     const ctx = captionCanvasRef.current.getContext("2d");
     if (ctx) drawCaptionCanvas(ctx, chords, -1, T);
   }
+}
+
+function restartPlayback() {
+  // Visual stop (audio may ring out; simplest behavior)
+  onStop();
+  // Start new selection after state updates settle
+  setTimeout(() => {
+    onPlay();
+  }, 0);
 }
   const onDownloadVideo = async () => {
   if (isExporting) return;
