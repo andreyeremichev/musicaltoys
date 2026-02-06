@@ -1,87 +1,40 @@
- "use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ToyNavHeader from "@/app/components/toys/ToyNavHeader";
 
 // In-file only (no UI): show/hide 2nd caption line (degrees/chords)
 const SHOW_DEGREES_CAPTION_LINE = false;
-/* =========================
-   Theme (Dark + Light)
-========================= */
-type BgMode = "dark" | "light";
-const themeDark = {
-  bg: "#0B0F14",
-  card: "#111820",
-  border: "#1E2935",
-  text: "#E6EBF2",
-  muted: "#8B94A7",
-  gold: "#EBCF7A", // Major
-  minor: "#69D58C", // Minor
-};
-const themeLight = {
-  bg: "#F5F6F8",
-  card: "#FFFFFF",
-  border: "#D9DEE7",
-  text: "#1B2430",
-  muted: "#667083",
-  gold: "#B08900",
-  minor: "#1E7B45",
-};
-function pickTheme(mode: BgMode) {
-  return mode === "dark" ? themeDark : themeLight;
-}
 
 /* =========================
-   Circle geometry
+   Fixed iOS keypad look
 ========================= */
-type DegLabel = "1" | "5" | "2" | "6" | "3" | "7" | "♯4" | "♭2" | "♭6" | "♭3" | "♭7" | "4";
-const DEGREE_ORDER: DegLabel[] = ["1", "5", "2", "6", "3", "7", "♯4", "♭2", "♭6", "♭3", "♭7", "4"];
+const IOS = {
+  pageBg: "#FFFFFF",
+  cardBg: "#FFFFFF",
+  cardBorder: "#E5E7EB",
+  text: "#111827",
+  muted: "#6B7280",
+  keyStroke: "rgba(17,24,39,0.28)",
+  keyFill: "#FFFFFF",
+  keyShadow: "rgba(0,0,0,0.12)",
+  green: "#1DB954",
+  major: "#B08900", // Brighter (BbMajor) — use your previous “gold”
+  minor: "#1E7B45", // Darker (Cminor) — use your previous “minor”
+};
 
-type Pt = { x: number; y: number };
-function fmt(v: number, p = 3) {
-  return Number(v.toFixed(p));
-}
-function nodePosition(i: number, r = 36): Pt {
-  const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
-  return { x: fmt(50 + Math.cos(a) * r), y: fmt(50 + Math.sin(a) * r) };
-}
-function labelPlacement(i: number, p: Pt) {
-  const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
-  const ux = Math.cos(a),
-    uy = Math.sin(a);
-  const x = p.x + 3.0 * ux,
-    y = p.y + 3.0 * uy;
-  const ax = Math.abs(ux),
-    ay = Math.abs(uy);
-  let anchor: "start" | "middle" | "end" = "middle";
-  let baseline: "alphabetic" | "middle" | "hanging" = "middle";
-  if (ax >= ay) {
-    anchor = ux > 0 ? "start" : "end";
-    baseline = "middle";
-  } else {
-    anchor = "middle";
-    baseline = uy > 0 ? "hanging" : "alphabetic";
-  }
-  return { x: fmt(x), y: fmt(y), anchor, baseline };
-}
-function pathFromNodes(indices: number[]): string {
-  if (!indices.length) return "";
-  const pts = indices.map((i) => nodePosition(i, 36));
-  const move = `M ${pts[0].x} ${pts[0].y}`;
-  const rest = pts
-    .slice(1)
-    .map((p) => `L ${p.x} ${p.y}`)
-    .join(" ");
-  return `${move} ${rest}`;
-}
+type TrailMode = "pulse" | "glow" | "confetti";
 
 /* =========================
    Musical mapping (B♭ Major / C minor)
 ========================= */
+type DegLabel = "1" | "5" | "2" | "6" | "3" | "7" | "♯4" | "♭2" | "♭6" | "♭3" | "♭7" | "4";
 type KeyName = "BbMajor" | "Cminor";
 const KEY_TONIC_PC: Record<KeyName, number> = { BbMajor: 10, Cminor: 0 };
+
 const MAJOR_DEG = { "1": 0, "2": 2, "3": 4, "4": 5, "5": 7, "6": 9, "7": 11 } as const;
 const MINOR_DEG = { "1": 0, "2": 2, "3": 3, "4": 5, "5": 7, "6": 8, "7": 10 } as const;
+
 type Diatonic = "1" | "2" | "3" | "4" | "5" | "6" | "7";
 type Chromatic = "♭2" | "♯4";
 
@@ -114,21 +67,15 @@ function degreeToPcOffset(deg: DegLabel, key: KeyName): number {
       return (base["7"] + 11) % 12;
   }
 }
-function minorDisplayLabel(d: Diatonic): DegLabel {
-  return d === "3" ? "♭3" : d === "6" ? "♭6" : d === "7" ? "♭7" : d;
-}
-function degToIndexForKey(d: Diatonic, key: KeyName) {
-  const lab: DegLabel = key === "Cminor" ? minorDisplayLabel(d) : d;
-  return DEGREE_ORDER.indexOf(lab);
-}
+
+const NOTE_ORDER = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
+type NoteName = `${(typeof NOTE_ORDER)[number]}${number}`;
 
 /* =========================
    Web Audio (shared)
 ========================= */
 let _ctx: AudioContext | null = null;
 const _buffers = new Map<string, AudioBuffer>();
-const NOTE_ORDER = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
-type NoteName = `${(typeof NOTE_ORDER)[number]}${number}`;
 
 function getCtx() {
   if (!_ctx) {
@@ -250,14 +197,14 @@ function tokenizePhone(raw: string, zeroPolicy: ZeroPolicy): Token[] {
   const s = sanitizePhoneInput(raw);
   const out: Token[] = [];
   zeroFlipRef.current = true;
-  let i = 0;
-  if (s.startsWith("+")) {
-    out.push({ kind: "intro" });
-    i = 1;
-  }
 
-  for (; i < s.length; i++) {
+  for (let i = 0; i < s.length; i++) {
     const ch = s[i];
+
+    if (ch === "+") {
+      out.push({ kind: "intro" });
+      continue;
+    }
     if (ch === "-") {
       out.push({ kind: "rest", char: "-" });
       continue;
@@ -342,26 +289,282 @@ function pickRecorderMime(): string {
 }
 
 /* =========================
-   Pass modes (NEW)
+   Caption helpers (kept)
 ========================= */
-type PassMode = "2M2m" | "3M" | "3m" | "2m2M";
-function segmentsForPassMode(mode: PassMode): KeyName[] {
-  switch (mode) {
-    case "2M2m":
-      return ["BbMajor", "BbMajor", "Cminor", "Cminor"];
-    case "3M":
-      return ["BbMajor", "BbMajor", "BbMajor"];
-    case "3m":
-      return ["Cminor", "Cminor", "Cminor"];
-    case "2m2M":
-      return ["Cminor", "Cminor", "BbMajor", "BbMajor"];
+function ordinalLabel(n: number) {
+  if (n === 1) return "1st";
+  if (n === 2) return "2nd";
+  if (n === 3) return "3rd";
+  return `${n}th`;
+}
+function t9GroupLabel(ch: string): string | null {
+  const u = ch.toUpperCase();
+  if ("ABC".includes(u)) return "(ABC)";
+  if ("DEF".includes(u)) return "(DEF)";
+  if ("GHI".includes(u)) return "(GHI)";
+  if ("JKL".includes(u)) return "(JKL)";
+  if ("MNO".includes(u)) return "(MNO)";
+  if ("PQRS".includes(u)) return "(PQRS)";
+  if ("TUV".includes(u)) return "(TUV)";
+  if ("WXYZ".includes(u)) return "(WXYZ)";
+  return null;
+}
+
+function renderWithSupers(token: string): React.ReactNode {
+  const invMatch = token.match(/^(\d+)(st|nd|rd|th)\s+(inv)$/i);
+  if (invMatch) {
+    const [, num, suf, tail] = invMatch;
+    return (
+      <>
+        {num}
+        <sup style={{ fontSize: "0.65em", verticalAlign: "super" }}>{suf}</sup> {tail}
+      </>
+    );
   }
+  const ordMatch = token.match(/^(\d+)(st|nd|rd|th)$/i);
+  if (ordMatch) {
+    const [, num, suf] = ordMatch;
+    return (
+      <>
+        {num}
+        <sup style={{ fontSize: "0.65em", verticalAlign: "super" }}>{suf}</sup>
+      </>
+    );
+  }
+  if (/^[♭♯]\d+(\/[♭♯]\d+)?$/.test(token)) {
+    const parts = token.split("/");
+    const renderPart = (p: string) => {
+      const m = p.match(/^([♭♯])(\d+)$/);
+      if (!m) return <>{p}</>;
+      const [, acc, num] = m;
+      return (
+        <>
+          {acc}
+          <sup style={{ fontSize: "0.65em", verticalAlign: "super" }}>{num}</sup>
+        </>
+      );
+    };
+    return (
+      <>
+        {renderPart(parts[0])}
+        {parts[1] ? (
+          <>
+            <span>/</span>
+            {renderPart(parts[1])}
+          </>
+        ) : null}
+      </>
+    );
+  }
+  return <>{token}</>;
+}
+
+function buildCaptionAndCurrentChain(
+  raw: string,
+  tokens: Token[],
+  zeroPolicy: ZeroPolicy
+): { caption: string[]; currentChain: string[] } {
+  const caption: string[] = [];
+  let currentChain: string[] = [];
+
+  for (const t of tokens) {
+    if (t.kind === "deg") caption.push(ordinalLabel(Number(t.d)));
+    else if (t.kind === "chroma") caption.push(t.c);
+  }
+
+  const src = (raw || "").toUpperCase();
+  if (!src.length) return { caption, currentChain };
+
+  const lastChar = src[src.length - 1];
+  const playableTokens = tokens.filter((t) => t.kind === "deg" || t.kind === "chroma");
+  const lastPlayable = playableTokens[playableTokens.length - 1];
+
+  if (lastChar === "+") return { caption, currentChain: ["+", "intro"] };
+  if (lastChar === "#") return { caption, currentChain: ["#", "resolve"] };
+  if (lastChar === "*") return { caption, currentChain: ["*", "rest"] };
+  if (lastChar === "-") return { caption, currentChain: ["-", "rest"] };
+
+  if (/[A-Z]/.test(lastChar)) {
+    const group = t9GroupLabel(lastChar) ?? "";
+    const d = T9[lastChar];
+    if (!lastPlayable) return { caption, currentChain: [lastChar, group, d] };
+
+    if (lastPlayable.kind === "deg") {
+      const lab = ordinalLabel(Number(lastPlayable.d));
+      if ((lastPlayable as any).up) {
+        const loopLab =
+          lastPlayable.d === "1" ? "loop → 1st" : lastPlayable.d === "2" ? "loop → 2nd" : `loop → ${lab}`;
+        currentChain = [lastChar, group, d, loopLab];
+      } else {
+        currentChain = [lastChar, group, d, lab];
+      }
+      return { caption, currentChain };
+    } else {
+      currentChain = [lastChar, group, d, lastPlayable.c];
+      return { caption, currentChain };
+    }
+  }
+
+  if (/[0-9]/.test(lastChar)) {
+    if (!lastPlayable) {
+      if (lastChar === "8") return { caption, currentChain: ["8", "1st inv"] };
+      if (lastChar === "9") return { caption, currentChain: ["9", "2nd inv"] };
+      if (lastChar === "0") return { caption, currentChain: ["0", zeroPolicy === "rest" ? "rest" : "chromatic"] };
+      if (/[1-7]/.test(lastChar)) return { caption, currentChain: [lastChar, ordinalLabel(Number(lastChar))] };
+      return { caption, currentChain: [lastChar] };
+    }
+
+    if (lastPlayable.kind === "deg") {
+      const lab = ordinalLabel(Number(lastPlayable.d));
+      if ((lastPlayable as any).up) {
+        const invLab = lastPlayable.src === "8" ? "1st inv" : lastPlayable.src === "9" ? "2nd inv" : lab;
+        currentChain = [lastChar, invLab];
+      } else {
+        currentChain = [lastChar, lab];
+      }
+      return { caption, currentChain };
+    } else {
+      currentChain = [lastChar, lastPlayable.c];
+      return { caption, currentChain };
+    }
+  }
+
+  return { caption, currentChain };
+}
+
+function buildDegreesLineTokens(raw: string, tokens: Token[], zeroPolicy: ZeroPolicy): string[] {
+  const out: string[] = [];
+  const playable = tokens.filter((t) => t.kind === "deg" || t.kind === "chroma");
+  let pi = 0;
+  const s = (raw || "").toUpperCase();
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === "+" || ch === "#" || ch === "*" || ch === " ") {
+      out.push(ch);
+      continue;
+    }
+    if (ch === "-") {
+      out.push("-");
+      continue;
+    }
+
+    if (/[A-Z0-9]/.test(ch)) {
+      if (ch === "0" && zeroPolicy === "rest") {
+        out.push("-");
+        continue;
+      }
+      const t = playable[pi++];
+      if (!t) {
+        if (ch === "8") {
+          out.push("1st inv");
+          continue;
+        }
+        if (ch === "9") {
+          out.push("2nd inv");
+          continue;
+        }
+        if (ch === "0") {
+          out.push(zeroPolicy === "rest" ? "·" : "♭2/#4");
+          continue;
+        }
+        if (/[1-7]/.test(ch)) {
+          out.push(ordinalLabel(Number(ch)));
+          continue;
+        }
+        out.push("·");
+        continue;
+      }
+
+      if (t.kind === "deg") {
+        if (t.src === "8") out.push("1st inv");
+        else if (t.src === "9") out.push("2nd inv");
+        else out.push(ordinalLabel(Number(t.d)));
+      } else {
+        out.push(t.c);
+      }
+      continue;
+    }
+
+    out.push("·");
+  }
+  return out;
+}
+
+/* =========================
+   iOS keypad geometry (0..100 SVG space)
+========================= */
+type Pt = { x: number; y: number };
+function fmt(v: number, p = 3) {
+  return Number(v.toFixed(p));
+}
+
+// Key centers
+const COL_X = [20, 50, 80];
+const ROW_Y = [20, 40, 60, 80];
+
+type KeyId = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "*" | "0" | "#";
+
+const KEYPAD_KEYS: Array<{ id: KeyId; digit: string; letters?: string }> = [
+  { id: "1", digit: "1" },
+  { id: "2", digit: "2", letters: "ABC" },
+  { id: "3", digit: "3", letters: "DEF" },
+  { id: "4", digit: "4", letters: "GHI" },
+  { id: "5", digit: "5", letters: "JKL" },
+  { id: "6", digit: "6", letters: "MNO" },
+  { id: "7", digit: "7", letters: "PQRS" },
+  { id: "8", digit: "8", letters: "TUV" },
+  { id: "9", digit: "9", letters: "WXYZ" },
+  { id: "*", digit: "*" },
+  { id: "0", digit: "0", letters: "+" },
+  { id: "#", digit: "#" },
+];
+
+function keyCenter(id: KeyId): Pt {
+  const idx = KEYPAD_KEYS.findIndex((k) => k.id === id);
+  const r = Math.floor(idx / 3);
+  const c = idx % 3;
+  return { x: COL_X[c], y: ROW_Y[r] };
+}
+
+function tokenToKeyId(tok: Token): KeyId | null {
+  if (tok.kind === "deg") {
+    if (tok.srcChar) {
+      const d = T9[tok.srcChar.toUpperCase()];
+      if (d && (d as any) !== "0") return d as KeyId;
+      return "0";
+    }
+    if (tok.src === "8") return "8";
+    if (tok.src === "9") return "9";
+    if ("1234567".includes(tok.src)) return tok.src as KeyId;
+    return null;
+  }
+
+  if (tok.kind === "chroma") return "0";
+
+  // NEW: treat these as visual hits too
+  if (tok.kind === "toggle") return "*";
+  if (tok.kind === "resolve") return "#";
+  if (tok.kind === "intro") return "0"; // '+' lives under 0 on iOS keypad
+
+  return null;
+}
+
+function pathFromKeySequence(keys: KeyId[]): string {
+  if (!keys.length) return "";
+  const pts = keys.map((k) => keyCenter(k));
+  const move = `M ${fmt(pts[0].x)} ${fmt(pts[0].y)}`;
+  const rest = pts
+    .slice(1)
+    .map((p) => `L ${fmt(p.x)} ${fmt(p.y)}`)
+    .join(" ");
+  return `${move} ${rest}`;
 }
 
 /* =========================
    Component
 ========================= */
-type TrailMode = "pulse" | "glow" | "lines" | "glow+confetti" | "lines+confetti";
+type Mood = "3M" | "3m"; // Brighter / Darker
 
 export default function ToneDialPage() {
   /* CSS + Prefill */
@@ -371,13 +574,17 @@ export default function ToneDialPage() {
       .vt-panel { width: 100%; max-width: 100%; min-width: 0; position: relative; }
       .vt-card  { padding-inline: 16px; }
       .vt-panel, .vt-actions { padding-inline: 14px; }
-      @media (max-width: 390px) { .vt-card  { padding-inline: calc(16px + env(safe-area-inset-left)) calc(16px + env(safe-area-inset-right)); }
+      @media (max-width: 390px) {
+        .vt-card  { padding-inline: calc(16px + env(safe-area-inset-left)) calc(16px + env(safe-area-inset-right)); }
         .vt-panel { padding-inline: calc(14px + env(safe-area-inset-left)) calc(14px + env(safe-area-inset-right)); }
         .vt-actions { padding-inline: calc(14px + env(safe-area-inset-left)) calc(14px + env(safe-area-inset-right)); }
-        .action-text{ display: none !important; } }
-      @media (max-width: 360px) { .vt-card  { padding-inline: calc(20px + env(safe-area-inset-left)) calc(20px + env(safe-area-inset-right)); }
+        .action-text{ display: none !important; }
+      }
+      @media (max-width: 360px) {
+        .vt-card  { padding-inline: calc(20px + env(safe-area-inset-left)) calc(20px + env(safe-area-inset-right)); }
         .vt-panel { padding-inline: calc(18px + env(safe-area-inset-left)) calc(18px + env(safe-area-inset-right)); }
-        .vt-actions { padding-inline: calc(18px + env(safe-area-inset-left)) calc(18px + env(safe-area-inset-right)); } }
+        .vt-actions { padding-inline: calc(18px + env(safe-area-inset-left)) calc(18px + env(safe-area-inset-right)); }
+      }
       .vt-actions { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; column-gap:10px; row-gap:8px; }
       .minw0 { min-width:0 !important; }
     `;
@@ -398,25 +605,21 @@ export default function ToneDialPage() {
       const q = sp.get("q");
       if (q) setRaw(sanitizePhoneInput(q));
       const t = sp.get("trail");
-      if (t === "pulse" || t === "glow" || t === "lines" || t === "glow+confetti" || t === "lines+confetti")
-        setTrailMode(t as TrailMode);
-      const b = sp.get("bg");
-      if (b === "dark" || b === "light") setBg(b as BgMode);
+if (t === "pulse" || t === "glow" || t === "confetti") setTrailMode(t as TrailMode);
       const z = sp.get("zero");
       if (z === "chromatic" || z === "rest" || z === "ticks") setZeroPolicy(z as ZeroPolicy);
+      const m = sp.get("mood");
+      if (m === "3M" || m === "3m") setMood(m as Mood);
     } catch {}
   }, []);
 
   /* State */
-  const [bg, setBg] = useState<BgMode>("dark");
-  const T = pickTheme(bg);
-
   const [trailMode, setTrailMode] = useState<TrailMode>("pulse");
   const [zeroPolicy, setZeroPolicy] = useState<ZeroPolicy>("chromatic");
+  const [mood, setMood] = useState<Mood>("3M"); // Brighter by default
 
-  // NEW: Major/Minor passes picker
-  const [passMode, setPassMode] = useState<PassMode>("2M2m");
-  const SEGMENTS = useMemo(() => segmentsForPassMode(passMode), [passMode]);
+  const keyNow: KeyName = mood === "3M" ? "BbMajor" : "Cminor";
+  const activeColor = keyNow === "BbMajor" ? IOS.major : IOS.minor;
 
   const [raw, setRaw] = useState("");
   const [isRunning, setIsRunning] = useState(false);
@@ -424,12 +627,32 @@ export default function ToneDialPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  // Existing transform helper (keep behavior)
-  const [showTransformHelper, setShowTransformHelper] = useState(true);
+  // --- VISUAL RESET on Motion change ---
+// Prevents stale SVG state (embers / pulse timers / overlay path) from affecting the next run.
+useEffect(() => {
+  // kill any pending pulse clear timer
+  try {
+    if (hotPulseClearRef.current) {
+      clearTimeout(hotPulseClearRef.current);
+      hotPulseClearRef.current = null;
+    }
+  } catch {}
+  setHotPulse(null);
 
-  // NEW: R / H toggles (OFF by default) — only affect circle UI
-  const [showRing, setShowRing] = useState(false); // R
-  const [showNodeHelper, setShowNodeHelper] = useState(false); // H
+  // clear overlay path + trail queue
+  keysRef.current = [];
+  setOverlayPath("");
+
+  // clear confetti DOM + pool whenever leaving confetti OR switching into pulse
+  emberPool.length = 0;
+  try {
+    const g = svgRef.current?.querySelector("#embers") as SVGGElement | null;
+    if (g) g.innerHTML = "";
+  } catch {}
+}, [trailMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Existing transform helper (kept)
+  const [showTransformHelper, setShowTransformHelper] = useState(true);
 
   // Playback-time UI (degrees strip vs aligned labels)
   const [showDegreesStrip, setShowDegreesStrip] = useState(true);
@@ -441,23 +664,19 @@ export default function ToneDialPage() {
   // Refs
   const svgRef = useRef<SVGSVGElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const rafRef = useRef<number>(0);
   const t0Ref = useRef<number>(0);
 
   // Caption canvas (live)
   const captionCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const captionSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
   const playedIdxRef = useRef(0);
   const playableToCharRef = useRef<number[]>([]);
   const charToPlayableRef = useRef<number[]>([]);
 
-  // Trails
-  type Overlay = { id: "maj" | "min"; color: string; path: string };
-  const [overlays, setOverlays] = useState<Overlay[]>([]);
-  const nodesMajRef = useRef<number[]>([]);
-  const nodesMinRef = useRef<number[]>([]);
+  // Trails (single path now)
   const TRAIL_N = 9999;
+  const keysRef = useRef<KeyId[]>([]);
+  const [overlayPath, setOverlayPath] = useState<string>("");
 
   // confetti (live)
   type Ember = { x: number; y: number; vx: number; vy: number; life: number; el: SVGCircleElement };
@@ -467,250 +686,36 @@ export default function ToneDialPage() {
   // Tokens
   const tokens = useMemo(() => tokenizePhone(raw, zeroPolicy), [raw, zeroPolicy]);
 
-  /* =========================
-     Caption + transform helpers (kept)
-  ========================= */
-  function ordinalLabel(n: number) {
-    if (n === 1) return "1st";
-    if (n === 2) return "2nd";
-    if (n === 3) return "3rd";
-    return `${n}th`;
-  }
-  function t9GroupLabel(ch: string): string | null {
-    const u = ch.toUpperCase();
-    if ("ABC".includes(u)) return "(ABC)";
-    if ("DEF".includes(u)) return "(DEF)";
-    if ("GHI".includes(u)) return "(GHI)";
-    if ("JKL".includes(u)) return "(JKL)";
-    if ("MNO".includes(u)) return "(MNO)";
-    if ("PQRS".includes(u)) return "(PQRS)";
-    if ("TUV".includes(u)) return "(TUV)";
-    if ("WXYZ".includes(u)) return "(WXYZ)";
-    return null;
-  }
-
-  function renderWithSupers(token: string): React.ReactNode {
-    const invMatch = token.match(/^(\d+)(st|nd|rd|th)\s+(inv)$/i);
-    if (invMatch) {
-      const [, num, suf, tail] = invMatch;
-      return (
-        <>
-          {num}
-          <sup style={{ fontSize: "0.65em", verticalAlign: "super" }}>{suf}</sup> {tail}
-        </>
-      );
-    }
-    const ordMatch = token.match(/^(\d+)(st|nd|rd|th)$/i);
-    if (ordMatch) {
-      const [, num, suf] = ordMatch;
-      return (
-        <>
-          {num}
-          <sup style={{ fontSize: "0.65em", verticalAlign: "super" }}>{suf}</sup>
-        </>
-      );
-    }
-    if (/^[♭♯]\d+(\/[♭♯]\d+)?$/.test(token)) {
-      const parts = token.split("/");
-      const renderPart = (p: string) => {
-        const m = p.match(/^([♭♯])(\d+)$/);
-        if (!m) return <>{p}</>;
-        const [, acc, num] = m;
-        return (
-          <>
-            {acc}
-            <sup style={{ fontSize: "0.65em", verticalAlign: "super" }}>{num}</sup>
-          </>
-        );
-      };
-      return (
-        <>
-          {renderPart(parts[0])}
-          {parts[1] ? (
-            <>
-              <span>/</span>
-              {renderPart(parts[1])}
-            </>
-          ) : null}
-        </>
-      );
-    }
-    return <>{token}</>;
-  }
-
-  function buildCaptionAndCurrentChain(
-    raw: string,
-    tokens: Token[],
-    zeroPolicy: ZeroPolicy
-  ): { caption: string[]; currentChain: string[] } {
-    const caption: string[] = [];
-    let currentChain: string[] = [];
-
-    for (const t of tokens) {
-      if (t.kind === "deg") caption.push(ordinalLabel(Number(t.d)));
-      else if (t.kind === "chroma") caption.push(t.c);
-    }
-
-    const src = (raw || "").toUpperCase();
-    if (!src.length) return { caption, currentChain };
-
-    const lastChar = src[src.length - 1];
-    const playableTokens = tokens.filter((t) => t.kind === "deg" || t.kind === "chroma");
-    const lastPlayable = playableTokens[playableTokens.length - 1];
-
-    if (lastChar === "+") return { caption, currentChain: ["+", "intro"] };
-    if (lastChar === "#") return { caption, currentChain: ["#", "resolve"] };
-    if (lastChar === "*") return { caption, currentChain: ["*", "rest"] };
-    if (lastChar === "-") return { caption, currentChain: ["-", "rest"] };
-
-    if (/[A-Z]/.test(lastChar)) {
-      const group = t9GroupLabel(lastChar) ?? "";
-      const d = T9[lastChar];
-      if (!lastPlayable) return { caption, currentChain: [lastChar, group, d] };
-
-      if (lastPlayable.kind === "deg") {
-        const lab = ordinalLabel(Number(lastPlayable.d));
-        if ((lastPlayable as any).up) {
-          const loopLab =
-            lastPlayable.d === "1" ? "loop → 1st" : lastPlayable.d === "2" ? "loop → 2nd" : `loop → ${lab}`;
-          currentChain = [lastChar, group, d, loopLab];
-        } else {
-          currentChain = [lastChar, group, d, lab];
-        }
-        return { caption, currentChain };
-      } else {
-        currentChain = [lastChar, group, d, lastPlayable.c];
-        return { caption, currentChain };
-      }
-    }
-
-    if (/[0-9]/.test(lastChar)) {
-      if (!lastPlayable) {
-        if (lastChar === "8") return { caption, currentChain: ["8", "1st inv"] };
-        if (lastChar === "9") return { caption, currentChain: ["9", "2nd inv"] };
-        if (lastChar === "0")
-          return { caption, currentChain: ["0", zeroPolicy === "rest" ? "rest" : "chromatic"] };
-        if (/[1-7]/.test(lastChar)) return { caption, currentChain: [lastChar, ordinalLabel(Number(lastChar))] };
-        return { caption, currentChain: [lastChar] };
-      }
-
-      if (lastPlayable.kind === "deg") {
-        const lab = ordinalLabel(Number(lastPlayable.d));
-        if ((lastPlayable as any).up) {
-          const invLab = lastPlayable.src === "8" ? "1st inv" : lastPlayable.src === "9" ? "2nd inv" : lab;
-          currentChain = [lastChar, invLab];
-        } else {
-          currentChain = [lastChar, lab];
-        }
-        return { caption, currentChain };
-      } else {
-        currentChain = [lastChar, lastPlayable.c];
-        return { caption, currentChain };
-      }
-    }
-
-    return { caption, currentChain };
-  }
-
-  function buildDegreesLineTokens(raw: string, tokens: Token[], zeroPolicy: ZeroPolicy): string[] {
-    const out: string[] = [];
-    const playable = tokens.filter((t) => t.kind === "deg" || t.kind === "chroma");
-    let pi = 0;
-    const s = (raw || "").toUpperCase();
-
-    for (let i = 0; i < s.length; i++) {
-      const ch = s[i];
-      if (ch === "+" || ch === "#" || ch === "*" || ch === " ") {
-        out.push(ch);
-        continue;
-      }
-      if (ch === "-") {
-        out.push("-");
-        continue;
-      }
-
-      if (/[A-Z0-9]/.test(ch)) {
-        if (ch === "0" && zeroPolicy === "rest") {
-          out.push("-");
-          continue;
-        }
-        const t = playable[pi++];
-        if (!t) {
-          if (ch === "8") {
-            out.push("1st inv");
-            continue;
-          }
-          if (ch === "9") {
-            out.push("2nd inv");
-            continue;
-          }
-          if (ch === "0") {
-            out.push(zeroPolicy === "rest" ? "·" : "♭2/#4");
-            continue;
-          }
-          if (/[1-7]/.test(ch)) {
-            out.push(ordinalLabel(Number(ch)));
-            continue;
-          }
-          out.push("·");
-          continue;
-        }
-
-        if (t.kind === "deg") {
-          if (t.src === "8") out.push("1st inv");
-          else if (t.src === "9") out.push("2nd inv");
-          else out.push(ordinalLabel(Number(t.d)));
-        } else {
-          out.push(t.c);
-        }
-        continue;
-      }
-
-      out.push("·");
-    }
-    return out;
-  }
-
   const { caption: captionDegrees, currentChain } = useMemo(() => {
     return buildCaptionAndCurrentChain(raw, tokens, zeroPolicy);
   }, [raw, tokens, zeroPolicy]);
+
   const degreesStrip = useMemo(() => {
     return buildDegreesLineTokens(raw, tokens, zeroPolicy);
   }, [raw, tokens, zeroPolicy]);
 
-  /* =========================
-     Ring / helper label overrides (NEW)
-     - ONLY 4 labels changed
-     - 1.2× smaller for those 4
-  ========================= */
-  function nodeLabelOverride(lab: DegLabel): { text: string; isSpecial: boolean } {
-    if (lab === "1") return { text: "1/8", isSpecial: true };
-    if (lab === "2") return { text: "2/9", isSpecial: true };
-    if (lab === "♭2") return { text: "♭2/0", isSpecial: true };
-    if (lab === "♯4") return { text: "♯4/0", isSpecial: true };
-    return { text: lab, isSpecial: false };
-  }
-
-  /* Helpers */
-  function appendTrail(spoke: number, key: KeyName) {
-    const dq = key === "BbMajor" ? nodesMajRef.current : nodesMinRef.current;
-    dq.push(spoke);
+  function appendTrailKey(k: KeyId) {
+    const dq = keysRef.current;
+    dq.push(k);
     if (dq.length > TRAIL_N + 1) dq.splice(0, dq.length - (TRAIL_N + 1));
-    const pathMaj = pathFromNodes(nodesMajRef.current);
-    const pathMin = pathFromNodes(nodesMinRef.current);
-    setOverlays([
-      { id: "maj", color: T.gold, path: pathMaj },
-      { id: "min", color: T.minor, path: pathMin },
-    ]);
+    setOverlayPath(pathFromKeySequence(dq));
   }
 
-  function spawnParticles(pool: Ember[], max: number, svg: SVGSVGElement, x: number, y: number, palette: string[], count = 5) {
-    if (!trailMode.includes("+confetti")) return;
+  function spawnParticles(
+    pool: Ember[],
+    max: number,
+    svg: SVGSVGElement,
+    x: number,
+    y: number,
+    palette: string[],
+    count = 5
+  ) {
+    if (!(trailMode == "confetti")) return;
     const g = svg.querySelector("#embers") as SVGGElement | null;
     if (!g) return;
     for (let k = 0; k < count; k++) {
       const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      const col = palette[(Math.random() * palette.length) | 0] || "#FFD36B";
+      const col = palette[(Math.random() * palette.length) | 0] || IOS.major;
       el.setAttribute("cx", String(x));
       el.setAttribute("cy", String(y));
       el.setAttribute("r", String(0.9 + Math.random() * 0.5));
@@ -727,7 +732,7 @@ export default function ToneDialPage() {
     }
   }
   function updateParticles(pool: Ember[]) {
-    if (!trailMode.includes("+confetti")) return;
+    if (trailMode !== "confetti") return;
     for (let i = pool.length - 1; i >= 0; i--) {
       const e = pool[i];
       e.x += e.vx;
@@ -750,7 +755,7 @@ export default function ToneDialPage() {
 ========================= */
   const NOTE_MS = 250;
   const TOK_COUNT = Math.max(1, tokens.length);
-  const STEPS = TOK_COUNT * SEGMENTS.length;
+  const STEPS = TOK_COUNT; // single pass (no mixed passes)
 
   const wrapDeg = (n: number): Diatonic => (["1", "2", "3", "4", "5", "6", "7"][(n - 1 + 7) % 7] as Diatonic);
 
@@ -786,12 +791,12 @@ export default function ToneDialPage() {
     scheduleNoteLive(ac, at, t5, key, false, dur);
   }
 
-  function scheduleFirstInvTonic(ac: AudioContext, at: number, key: KeyName, _isMinor: boolean, dur = 0.25) {
+  function scheduleFirstInvTonic(ac: AudioContext, at: number, key: KeyName, dur = 0.25) {
     scheduleNoteLive(ac, at, "3", key, false, dur);
     scheduleNoteLive(ac, at, "5", key, false, dur);
     scheduleNoteLive(ac, at, "1", key, true, dur);
   }
-  function scheduleSecondInvSupertonic(ac: AudioContext, at: number, key: KeyName, _isMinor: boolean, dur = 0.25) {
+  function scheduleSecondInvSupertonic(ac: AudioContext, at: number, key: KeyName, dur = 0.25) {
     scheduleNoteLive(ac, at, "6", key, false, dur);
     scheduleNoteLive(ac, at, "2", key, true, dur);
     scheduleNoteLive(ac, at, "4", key, true, dur);
@@ -1020,7 +1025,7 @@ export default function ToneDialPage() {
     return "·";
   }
 
-  function drawCaptionCanvas(activePlayableIdx: number, keyNow: KeyName) {
+  function drawCaptionCanvas(activePlayableIdx: number, keyForColor: KeyName) {
     const cvs = captionCanvasRef.current;
     if (!cvs) return;
     const ctx = cvs.getContext("2d");
@@ -1048,7 +1053,7 @@ export default function ToneDialPage() {
             labels[ci] = "-";
             continue;
           }
-          labels[ci] = labelForTokenCanvas(playable[p], keyNow);
+          labels[ci] = labelForTokenCanvas(playable[p], keyForColor);
           p++;
         }
       }
@@ -1079,23 +1084,24 @@ export default function ToneDialPage() {
     const topY = Math.round(topPx + 2);
     const botY = Math.round(topY + gap + botPx + 2);
 
-    const activeColor = keyNow === "BbMajor" ? T.gold : T.minor;
+    const activeCol = keyForColor === "BbMajor" ? IOS.major : IOS.minor;
 
     for (let i = 0; i < disp.length; i++) {
       const el = disp[i];
       if (el.isSep) {
-        ctx.fillStyle = T.muted;
+        ctx.fillStyle = IOS.muted;
         ctx.fillText(el.txt, x, topY);
         x += widths[i];
         continue;
       }
       const isActive = el.charIndex === activeChar;
-      ctx.fillStyle = isActive ? activeColor : T.text;
+      ctx.fillStyle = isActive ? activeCol : IOS.text;
       ctx.fillText(el.txt, x, topY);
       x += widths[i];
     }
 
-if (!SHOW_DEGREES_CAPTION_LINE) return;
+    if (!SHOW_DEGREES_CAPTION_LINE) return;
+
     x = Math.max(padX, (cssW - totalW) / 2);
     ctx.font = `${botPx}px Inter, system-ui, sans-serif`;
     for (let i = 0; i < disp.length; i++) {
@@ -1107,7 +1113,7 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
       const lab = labels[el.charIndex] || "";
       if (lab) {
         const isActive = el.charIndex === activeChar;
-        ctx.fillStyle = isActive ? activeColor : T.text;
+        ctx.fillStyle = isActive ? activeCol : IOS.text;
 
         if (lab === "♭2/♯4") {
           const topLab = "♭2";
@@ -1123,7 +1129,7 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
           const topLab = lab.replace(/\s+inv$/i, "");
           const botLab = "inv";
           const prev = ctx.font;
-          const smallPx = Math.round(botPx * 0.6);
+          const smallPx = Math.round(parseFloat(ctx.font) * 0.6);
           ctx.font = `${smallPx}px Inter, system-ui, sans-serif`;
           const wTop = measureTokenWithSup(ctx, topLab);
           const wBot = ctx.measureText(botLab).width;
@@ -1148,12 +1154,28 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
       (document.activeElement as HTMLElement | null)?.blur();
     } catch {}
     await unlockCtx();
+    const modeAtStart = trailMode;
+    // --- HARD RESET (prevents leftover confetti/pulse between runs) ---
+try {
+  if (hotPulseClearRef.current) {
+    clearTimeout(hotPulseClearRef.current);
+    hotPulseClearRef.current = null;
+  }
+} catch {}
+setHotPulse(null);
 
-    nodesMajRef.current = [];
-    nodesMinRef.current = [];
-    setOverlays([]);
+emberPool.length = 0;
+try {
+  const svgEl = svgRef.current;
+  const g = svgEl?.querySelector("#embers") as SVGGElement | null;
+  if (g) g.innerHTML = "";
+} catch {}
+// --- end reset ---
+
+    keysRef.current = [];
+    setOverlayPath("");
     setIsRunning(true);
-    drawCaptionCanvas(-1, "BbMajor");
+    drawCaptionCanvas(-1, keyNow);
     setShowTransformHelper(false);
     setShowDegreesStrip(false);
     if (!hasPlayed) setHasPlayed(true);
@@ -1162,7 +1184,7 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
     const t0 = ac.currentTime + 0.12;
     t0Ref.current = t0;
 
-    const hasIntro = tokens.some((t) => (t as any).kind === "intro");
+    
 
     const srcStr = (raw || "").toUpperCase();
     const playable = tokens.filter((t) => t.kind === "deg" || t.kind === "chroma");
@@ -1194,19 +1216,19 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
     playedIdxRef.current = 0;
 
     for (let i = 0; i < STEPS; i++) {
-      const segIdx = Math.floor(i / TOK_COUNT) % SEGMENTS.length;
-      const curKey: KeyName = SEGMENTS[segIdx];
-      const isMinorPass = curKey === "Cminor";
-      const tok = tokens[i % TOK_COUNT];
+      const tok = tokens[i];
       const at = t0 + i * (NOTE_MS / 1000);
 
-      if (hasIntro && i % TOK_COUNT === 0) scheduleIntroChord(ac, at, curKey);
+      if (tok?.kind === "intro") {
+  scheduleIntroChord(ac, at, keyNow);
+  continue;
+}
 
       if (!tok) continue;
       if (tok.kind === "toggle") continue;
-      if (tok.kind === "intro") continue;
+      
       if (tok.kind === "resolve") {
-        scheduleResolveCadence(ac, at, curKey);
+        scheduleResolveCadence(ac, at, keyNow);
         continue;
       }
       if (tok.kind === "rest") continue;
@@ -1217,16 +1239,16 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
         if (isLetter) {
           if (tok.kind === "deg") {
             if (tok.up && tok.src === "8") {
-              scheduleNoteLive(ac, at, "1", curKey, false);
-              scheduleNoteLive(ac, at, "1", curKey, true);
+              scheduleNoteLive(ac, at, "1", keyNow, false);
+              scheduleNoteLive(ac, at, "1", keyNow, true);
             } else if (tok.up && tok.src === "9") {
-              scheduleNoteLive(ac, at, "1", curKey, false);
-              scheduleNoteLive(ac, at, "2", curKey, true);
+              scheduleNoteLive(ac, at, "1", keyNow, false);
+              scheduleNoteLive(ac, at, "2", keyNow, true);
             } else {
-              scheduleNoteLive(ac, at, tok.d, curKey, tok.up);
+              scheduleNoteLive(ac, at, tok.d, keyNow, tok.up);
             }
           } else {
-            const pc = degreeToPcOffset(tok.c as DegLabel, curKey);
+            const pc = degreeToPcOffset(tok.c as DegLabel, keyNow);
             const midi = snapPcToComfortableMidi(pc);
             const name = midiToNoteName(midi);
 
@@ -1263,11 +1285,11 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
           }
         } else {
           if (tok.kind === "deg") {
-            if ("1234567".includes(tok.src)) scheduleTriadLive(ac, at, tok.d, curKey);
-            else if (tok.src === "8") scheduleFirstInvTonic(ac, at, curKey, isMinorPass);
-            else if (tok.src === "9") scheduleSecondInvSupertonic(ac, at, curKey, isMinorPass);
+            if ("1234567".includes(tok.src)) scheduleTriadLive(ac, at, tok.d, keyNow);
+            else if (tok.src === "8") scheduleFirstInvTonic(ac, at, keyNow);
+            else if (tok.src === "9") scheduleSecondInvSupertonic(ac, at, keyNow);
           } else if (tok.kind === "chroma") {
-            const pc = degreeToPcOffset(tok.c as DegLabel, curKey);
+            const pc = degreeToPcOffset(tok.c as DegLabel, keyNow);
             const midi = snapPcToComfortableMidi(pc);
             const name = midiToNoteName(midi);
 
@@ -1318,53 +1340,44 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
         for (let s = lastDrawnStep + 1; s <= step; s++) {
           if (s < 0 || s >= STEPS) continue;
 
-          const segIdx = Math.floor(s / TOK_COUNT) % SEGMENTS.length;
-          const nowKey: KeyName = SEGMENTS[segIdx];
-
-          const segStart = Math.floor(s / TOK_COUNT) * TOK_COUNT;
-          if (s === segStart) {
-            if (nowKey === "BbMajor") nodesMajRef.current = [];
-            else nodesMinRef.current = [];
+          if (s === 0) {
+            keysRef.current = [];
+            setOverlayPath("");
             playedIdxRef.current = 0;
           }
 
-          const tok = tokens[s % TOK_COUNT];
+          const tok = tokens[s];
 
-          if (!tok || tok.kind === "rest" || tok.kind === "intro" || tok.kind === "resolve" || tok.kind === "toggle") {
-            if (trailMode.includes("+confetti")) updateParticles(emberPool);
-            continue;
-          }
+          if (!tok || tok.kind === "rest") {
+  if (modeAtStart === "confetti") updateParticles(emberPool);
+  continue;
+}
 
-          let spoke = -1;
-          if (tok.kind === "deg") spoke = degToIndexForKey(tok.d, nowKey);
-          else if (tok.kind === "chroma") spoke = DEGREE_ORDER.indexOf(tok.c as any);
+          const keyId = tokenToKeyId(tok);
+          if (keyId) {
+            appendTrailKey(keyId);
 
-          if (spoke >= 0) {
-            appendTrail(spoke, nowKey);
-
-            drawCaptionCanvas(playedIdxRef.current, nowKey);
+            drawCaptionCanvas(playedIdxRef.current, keyNow);
             playedIdxRef.current++;
 
-            if (trailMode === "pulse") {
-              const p = nodePosition(spoke, 36);
-              const color = nowKey === "BbMajor" ? T.gold : T.minor;
-              setHotPulse({ x: p.x, y: p.y, color });
-              if (hotPulseClearRef.current) clearTimeout(hotPulseClearRef.current);
-              hotPulseClearRef.current = window.setTimeout(() => {
-                setHotPulse(null);
-                hotPulseClearRef.current = null;
-              }, 220);
-            } else if (trailMode.includes("+confetti")) {
-              const svgEl = svgRef.current;
-              if (svgEl) {
-                const p = nodePosition(spoke, 36);
-                const palette = [T.gold, T.minor, "#FFD36B"];
-                spawnParticles(emberPool, maxEmbers, svgEl, p.x, p.y, palette, 8);
-              }
-            }
+            const p = keyCenter(keyId);
+            if (modeAtStart === "pulse") {
+  setHotPulse({ x: p.x, y: p.y, color: activeColor });
+  if (hotPulseClearRef.current) clearTimeout(hotPulseClearRef.current);
+  hotPulseClearRef.current = window.setTimeout(() => {
+    setHotPulse(null);
+    hotPulseClearRef.current = null;
+  }, 320);
+} else if (modeAtStart === "confetti") {
+  const svgEl = svgRef.current;
+  if (svgEl) {
+    const palette = [IOS.major, IOS.minor, "#FFD36B"];
+    spawnParticles(emberPool, maxEmbers, svgEl, p.x, p.y, palette, 8);
+  }
+}
           }
 
-          if (trailMode.includes("+confetti")) updateParticles(emberPool);
+          if (modeAtStart === "confetti") updateParticles(emberPool);
         }
 
         lastDrawnStep = step;
@@ -1374,16 +1387,29 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
         rafRef.current = requestAnimationFrame(loopLive);
       } else {
         setIsRunning(false);
-        if (hotPulseClearRef.current) {
-          clearTimeout(hotPulseClearRef.current);
-          hotPulseClearRef.current = null;
-        }
-        setShowDegreesStrip(true);
+
+if (hotPulseClearRef.current) {
+  clearTimeout(hotPulseClearRef.current);
+  hotPulseClearRef.current = null;
+}
+setHotPulse(null);
+
+// If confetti was active, stop leaving particles behind after a run
+if (trailMode === "confetti") {
+  emberPool.length = 0;
+  try {
+    const svgEl = svgRef.current;
+    const g = svgEl?.querySelector("#embers") as SVGGElement | null;
+    if (g) g.innerHTML = "";
+  } catch {}
+}
+
+setShowDegreesStrip(true);
       }
     }
 
     rafRef.current = requestAnimationFrame(loopLive);
-  }, [isRunning, hasPlayed, tokens, NOTE_MS, SEGMENTS, TOK_COUNT, T.gold, T.minor, trailMode, zeroPolicy]);
+  }, [isRunning, hasPlayed, tokens, NOTE_MS, STEPS, keyNow, activeColor, trailMode, zeroPolicy, emberPool]);
 
   const start = useCallback(() => {
     if (isRunning) {
@@ -1408,18 +1434,18 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
   const buildShareUrl = useCallback(() => {
     if (typeof window === "undefined") return "";
     const params = new URLSearchParams();
-    params.set("bg", bg);
     params.set("trail", trailMode);
     params.set("zero", zeroPolicy);
+    params.set("mood", mood);
     params.set("q", raw || "");
     const url = new URL(window.location.href);
     url.search = params.toString();
     return url.toString();
-  }, [bg, trailMode, zeroPolicy, raw]);
+  }, [trailMode, zeroPolicy, mood, raw]);
 
   /* =========================
-     Export (Download): keep mp4 logic as-is
-     - Updated to use SEGMENTS (passMode)
+     Export (Download): keep mp4 logic architecture
+     - Updated to keypad SVG + keypad overlay generator
 ========================= */
   const onDownloadVideo = useCallback(async () => {
     setIsExporting(true);
@@ -1432,14 +1458,18 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
 
       await unlockCtx();
 
-      // 1) Snapshot background (circle + labels only)
+      // 1) Snapshot background (keypad only)
       const rect = svgEl.getBoundingClientRect();
       const liveW = Math.max(2, Math.floor(rect.width));
       const liveH = Math.max(2, Math.floor(rect.height));
       const clone = svgEl.cloneNode(true) as SVGSVGElement;
-      clone.querySelectorAll("path").forEach((p) => p.remove());
+
+      // remove overlay paths + embers + pulse
+      clone.querySelectorAll('[data-ov="1"]').forEach((p) => p.remove());
       const embersClone = clone.querySelector("#embers");
       if (embersClone) embersClone.remove();
+      clone.querySelectorAll('[data-pulse="1"]').forEach((n) => n.remove());
+
       const css = await buildEmbeddedFontStyle();
       const rawBg = serializeFullSvg(clone, liveW, liveH, css);
       const bgImg = await svgToImage(rawBg);
@@ -1524,14 +1554,13 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
       const drawW = Math.round(liveW * scaleContent);
       const drawH = Math.round(liveH * scaleContent);
       const drawX = Math.round((FRAME_W - drawW) / 2);
-      const CAPTION_TO_CIRCLE_GAP = 12;
-      const drawY = goldTop + CAPTION_TO_CIRCLE_GAP;
+      const CAPTION_TO_STAGE_GAP = 12;
+      const drawY = goldTop + CAPTION_TO_STAGE_GAP;
 
       // 4) Schedule
       const NOTE_MS_E = 250;
       const TOK_COUNT_E = Math.max(1, tokens.length);
-      const SEGMENTS_E: KeyName[] = SEGMENTS;
-      const STEPS_E = TOK_COUNT_E * SEGMENTS_E.length;
+      const STEPS_E = TOK_COUNT_E;
       const hasIntro = tokens.some((t) => (t as any).kind === "intro");
       const t0 = ac.currentTime + 0.25;
 
@@ -1590,26 +1619,35 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
         });
       }
 
-      type ExpPoint = { k: "maj" | "min"; step: number; spoke: number };
+      type ExpPoint = { step: number; keyId: KeyId };
       const exportPoints: ExpPoint[] = [];
 
       for (let i = 0; i < STEPS_E; i++) {
-        const segIdx = Math.floor(i / TOK_COUNT_E) % SEGMENTS_E.length;
-        const keyNow: KeyName = SEGMENTS_E[segIdx];
-        const kTag: "maj" | "min" = keyNow === "BbMajor" ? "maj" : "min";
-        const tok = tokens[i % TOK_COUNT_E];
+        const tok = tokens[i];
         const at = t0 + i * (NOTE_MS_E / 1000);
 
-        if (hasIntro && i % TOK_COUNT_E === 0) scheduleIntroChordE(at, keyNow);
+        if (hasIntro && i === 0) scheduleIntroChordE(at, keyNow);
 
         if (!tok) continue;
-        if (tok.kind === "toggle") continue;
-        if (tok.kind === "intro") continue;
-        if (tok.kind === "resolve") {
-          scheduleResolveCadenceE(at, keyNow);
-          continue;
-        }
-        if (tok.kind === "rest") continue;
+
+// --- VISUAL: record trail point for ANY token that maps to a keypad key ---
+const kVis = tokenToKeyId(tok);
+if (kVis) exportPoints.push({ step: i, keyId: kVis });
+
+// --- AUDIO behavior (unchanged intent) ---
+if (tok.kind === "toggle") continue;
+
+if (tok.kind === "intro") {
+  scheduleIntroChordE(at, keyNow);
+  continue;
+}
+
+if (tok.kind === "resolve") {
+  scheduleResolveCadenceE(at, keyNow);
+  continue;
+}
+
+if (tok.kind === "rest") continue;
 
         if (tok.kind === "deg" || tok.kind === "chroma") {
           const isLetter = !!tok.srcChar;
@@ -1619,39 +1657,25 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
               if (tok.up && tok.src === "8") {
                 scheduleNote(midiToNoteName(degreeToMidi("1", keyNow, false)), at);
                 scheduleNote(midiToNoteName(degreeToMidi("1", keyNow, true)), at);
-                const spoke = degToIndexForKey("1", keyNow);
-                if (spoke >= 0) exportPoints.push({ k: kTag, step: i, spoke });
               } else if (tok.up && tok.src === "9") {
                 scheduleNote(midiToNoteName(degreeToMidi("1", keyNow, false)), at);
                 scheduleNote(midiToNoteName(degreeToMidi("2", keyNow, true)), at);
-                const spoke = degToIndexForKey("1", keyNow);
-                if (spoke >= 0) exportPoints.push({ k: kTag, step: i, spoke });
               } else {
                 scheduleNote(midiToNoteName(degreeToMidi(tok.d, keyNow, tok.up)), at);
-                const spoke = degToIndexForKey(tok.d, keyNow);
-                if (spoke >= 0) exportPoints.push({ k: kTag, step: i, spoke });
               }
             } else {
               const pc = degreeToPcOffset(tok.c as DegLabel, keyNow);
               const midi = snapPcToComfortableMidi(pc);
               scheduleNote(midiToNoteName(midi), at);
-              const spoke = DEGREE_ORDER.indexOf(tok.c as any);
-              if (spoke >= 0) exportPoints.push({ k: kTag, step: i, spoke });
             }
           } else {
             if (tok.kind === "deg") {
               if ("1234567".includes(tok.src)) {
                 scheduleTriad(at, tok.d, keyNow);
-                const spoke = degToIndexForKey(tok.d, keyNow);
-                if (spoke >= 0) exportPoints.push({ k: kTag, step: i, spoke });
               } else if (tok.src === "8") {
                 scheduleFirstInvTonic(at, keyNow);
-                const spoke = degToIndexForKey("1", keyNow);
-                if (spoke >= 0) exportPoints.push({ k: kTag, step: i, spoke });
               } else if (tok.src === "9") {
                 scheduleSecondInvSupertonic(at, keyNow);
-                const spoke = degToIndexForKey("2", keyNow);
-                if (spoke >= 0) exportPoints.push({ k: kTag, step: i, spoke });
               }
             } else if (tok.kind === "chroma") {
               const pc = degreeToPcOffset(tok.c as DegLabel, keyNow);
@@ -1663,20 +1687,18 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
 
               if (useTickEnv) scheduleShortNote(name, at);
               else scheduleNote(name, at);
-
-              const spoke = DEGREE_ORDER.indexOf(tok.c as any);
-              if (spoke >= 0) exportPoints.push({ k: kTag, step: i, spoke });
             }
           }
+
+          
         }
       }
 
       function overlaySvgForStep(stepIdx: number): string {
-        const majVis = exportPoints.filter((p) => p.k === "maj" && p.step <= stepIdx).map((p) => p.spoke);
-        const minVis = exportPoints.filter((p) => p.k === "min" && p.step <= stepIdx).map((p) => p.spoke);
-        const pathMaj = majVis.length ? pathFromNodes(majVis) : "";
-        const pathMin = minVis.length ? pathFromNodes(minVis) : "";
+        const visKeys = exportPoints.filter((p) => p.step <= stepIdx).map((p) => p.keyId);
+        const path = visKeys.length ? pathFromKeySequence(visKeys) : "";
         const strokeWidth = trailMode.startsWith("glow") ? 1.15 : 1.4;
+
         const filterBlock = `
           <defs>
             <filter id="vt-glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -1691,255 +1713,143 @@ if (!SHOW_DEGREES_CAPTION_LINE) return;
           </defs>
         `;
         return `
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${liveW}" height="${liveH}" shape-rendering="geometricPrecision">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 115" width="${liveW}" height="${liveH}" shape-rendering="geometricPrecision">
             ${trailMode.startsWith("glow") ? filterBlock : ""}
-            ${pathMaj ? `<path d="${pathMaj}" fill="none" stroke="${T.gold}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" ${trailMode.startsWith("glow") ? `filter="url(#vt-glow)"` : ""} />` : ""}
-            ${pathMin ? `<path d="${pathMin}" fill="none" stroke="${T.minor}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" ${trailMode.startsWith("glow") ? `filter="url(#vt-glow)"` : ""} />` : ""}
+            ${path ? `<path d="${path}" fill="none" stroke="${activeColor}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" ${trailMode.startsWith("glow") ? `filter="url(#vt-glow)"` : ""} />` : ""}
           </svg>
         `;
       }
 
       const overlayImgs: HTMLImageElement[] = [];
-      if (trailMode !== "pulse") {
-        for (let k = 0; k < STEPS_E; k++) {
-          const svgMarkup = overlaySvgForStep(k);
-          const img = await svgToImage(svgMarkup);
-          overlayImgs.push(img);
-        }
-      }
+if (trailMode === "glow") {
+  for (let k = 0; k < STEPS_E; k++) {
+    const svgMarkup = overlaySvgForStep(k);
+    const img = await svgToImage(svgMarkup);
+    overlayImgs.push(img);
+  }
+}
+
       // =========================
-// EXPORT: Pulse + Confetti visuals (canvas-drawn)
-// =========================
+      // EXPORT: Pulse + Confetti visuals (canvas-drawn)
+      // =========================
+      function drawPulseForStep(ctx: CanvasRenderingContext2D, stepIdx: number, frac: number) {
+        const pts = exportPoints.filter((p) => p.step === stepIdx);
+        if (!pts.length) return;
 
-// Draw pulse (dot + expanding ring) for points at this step
-function drawPulseForStep(
-  ctx: CanvasRenderingContext2D,
-  stepIdx: number,
-  keyNow: KeyName,
-  frac: number // 0..1 within step
-) {
-  const pts = exportPoints.filter(p => p.step === stepIdx);
-  if (!pts.length) return;
+        const t = Math.max(0, Math.min(1, frac));
+        const ringR = 1.8 + 3.4 * t; // in 0..100 space
+        const ringAlpha = 0.85 * (1 - t);
+        const dotR = 1.6;
 
-  const t = Math.max(0, Math.min(1, frac));
-  const ringR = 1.8 + 3.4 * t;       // in 0..100 circle space
-  const ringAlpha = 0.85 * (1 - t);
-  const dotR = 1.6;
+        ctx.save();
 
-  const color =
-    keyNow === "BbMajor"
-      ? (bg === "dark" ? themeDark.gold : themeLight.gold)
-      : (bg === "dark" ? themeDark.minor : themeLight.minor);
+// Map 100×115 viewBox into the drawn rectangle using SVG-like "meet" scaling
+const VB_W = 100;
+const VB_H = 115;
+const s = Math.min(drawW / VB_W, drawH / VB_H);
+const offX = (drawW - VB_W * s) / 2;
+const offY = (drawH - VB_H * s) / 2;
 
-  ctx.save();
-  ctx.translate(drawX * SCALE, drawY * SCALE);
-  ctx.scale((drawW * SCALE) / 100, (drawH * SCALE) / 100);
+ctx.translate((drawX + offX) * SCALE, (drawY + offY) * SCALE);
+ctx.scale(s * SCALE, s * SCALE);
 
-  for (const p of pts) {
-    const node = nodePosition(p.spoke, 36);
+        for (const p0 of pts) {
+          const node = keyCenter(p0.keyId);
+          // dot
+          ctx.beginPath();
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = activeColor;
+          ctx.arc(node.x, node.y, dotR, 0, Math.PI * 2);
+          ctx.fill();
 
-    // dot
-    ctx.beginPath();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = color;
-    ctx.arc(node.x, node.y, dotR, 0, Math.PI * 2);
-    ctx.fill();
+          // ring
+          ctx.beginPath();
+          ctx.globalAlpha = ringAlpha;
+          ctx.strokeStyle = activeColor;
+          ctx.lineWidth = 0.6;
+          ctx.arc(node.x, node.y, ringR, 0, Math.PI * 2);
+          ctx.stroke();
+        }
 
-    // ring
-    ctx.beginPath();
-    ctx.globalAlpha = ringAlpha;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 0.6;
-    ctx.arc(node.x, node.y, ringR, 0, Math.PI * 2);
-    ctx.stroke();
-  }
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      }
 
-  ctx.restore();
-  ctx.globalAlpha = 1;
-}
+      type ExpParticle = { x: number; y: number; vx: number; vy: number; life: number; r: number; color: string };
+      const expParticles: ExpParticle[] = [];
+      const EXP_MAX_PARTICLES = 220;
 
-// Confetti particles (simple, deterministic enough)
-type ExpParticle = {
-  x: number; y: number;
-  vx: number; vy: number;
-  life: number;
-  r: number;
-  color: string;
-};
+      function spawnConfettiForStep(stepIdx: number) {
+        if (trailMode !== "confetti") return;
+        const pts = exportPoints.filter((p) => p.step === stepIdx);
+        if (!pts.length) return;
 
-const expParticles: ExpParticle[] = [];
-const EXP_MAX_PARTICLES = 220;
+        const palette = [IOS.major, IOS.minor, "#FFD36B"];
 
-function spawnConfettiForStep(stepIdx: number) {
-  if (!trailMode.includes("+confetti")) return;
+        for (const p0 of pts) {
+          const node = keyCenter(p0.keyId);
+          const burst = 10;
+          for (let i = 0; i < burst; i++) {
+            const ang = Math.random() * Math.PI * 2;
+            const spd = 0.9 + Math.random() * 1.4;
+            expParticles.push({
+              x: node.x,
+              y: node.y,
+              vx: Math.cos(ang) * spd,
+              vy: Math.sin(ang) * spd - 0.35,
+              life: 1.0,
+              r: 0.9 + Math.random() * 0.6,
+              color: palette[(Math.random() * palette.length) | 0],
+            });
+          }
+        }
+        while (expParticles.length > EXP_MAX_PARTICLES) expParticles.shift();
+      }
 
-  const pts = exportPoints.filter(p => p.step === stepIdx);
-  if (!pts.length) return;
+      function updateAndDrawConfetti(ctx: CanvasRenderingContext2D, dtSec: number) {
+        if (trailMode !== "confetti") return;
+        const DT = Math.max(0.5, Math.min(2.0, dtSec * 60));
+        const GRAV = 0.035;
 
-  const palette = [
-    (bg === "dark" ? themeDark.gold : themeLight.gold),
-    (bg === "dark" ? themeDark.minor : themeLight.minor),
-    "#FFD36B",
-  ];
+        for (let i = expParticles.length - 1; i >= 0; i--) {
+          const p = expParticles[i];
+          p.x += p.vx * DT;
+          p.y += p.vy * DT;
+          p.vy += GRAV * DT;
+          p.life -= 0.035 * DT;
+          if (p.life <= 0) expParticles.splice(i, 1);
+        }
 
-  for (const p of pts) {
-    const node = nodePosition(p.spoke, 36);
-    const burst = 10; // particles per hit
+        ctx.save();
 
-    for (let i = 0; i < burst; i++) {
-      const ang = Math.random() * Math.PI * 2;
-      const spd = 0.9 + Math.random() * 1.4;
-      expParticles.push({
-        x: node.x,
-        y: node.y,
-        vx: Math.cos(ang) * spd,
-        vy: Math.sin(ang) * spd - 0.35, // slight upward bias
-        life: 1.0,
-        r: 0.9 + Math.random() * 0.6,
-        color: palette[(Math.random() * palette.length) | 0],
-      });
-    }
-  }
+// Map 100×115 viewBox into the drawn rectangle using SVG-like "meet" scaling
+const VB_W = 100;
+const VB_H = 115;
+const s = Math.min(drawW / VB_W, drawH / VB_H);
+const offX = (drawW - VB_W * s) / 2;
+const offY = (drawH - VB_H * s) / 2;
 
-  // cap
-  while (expParticles.length > EXP_MAX_PARTICLES) expParticles.shift();
-}
+ctx.translate((drawX + offX) * SCALE, (drawY + offY) * SCALE);
+ctx.scale(s * SCALE, s * SCALE);
 
-function updateAndDrawConfetti(ctx: CanvasRenderingContext2D, dtSec: number) {
-  if (!trailMode.includes("+confetti")) return;
-  const DT = Math.max(0.5, Math.min(2.0, dtSec * 60)); // normalize to ~60fps
-  const GRAV = 0.035;
+        for (const p of expParticles) {
+          ctx.globalAlpha = Math.max(0.15, p.life);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
 
-  // update
-  for (let i = expParticles.length - 1; i >= 0; i--) {
-    const p = expParticles[i];
-    p.x += p.vx * DT;
-    p.y += p.vy * DT;
-    p.vy += GRAV * DT;
-    p.life -= 0.035 * DT;
-    if (p.life <= 0) expParticles.splice(i, 1);
-  }
-
-  // draw in circle space
-  ctx.save();
-  ctx.translate(drawX * SCALE, drawY * SCALE);
-  ctx.scale((drawW * SCALE) / 100, (drawH * SCALE) / 100);
-
-  for (const p of expParticles) {
-    ctx.globalAlpha = Math.max(0.15, p.life);
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  ctx.restore();
-  ctx.globalAlpha = 1;
-}
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      }
 
       // export caption helpers (reuse same drawing approach)
       function measureTokenWithSupE(ctx: CanvasRenderingContext2D, text: string): number {
-        let m = text.match(/^(\d+)(st|nd|rd|th)\s+(inv)$/i);
-        if (m) {
-          const [, num, suf, tail] = m;
-          const prev = ctx.font;
-          const wNum = ctx.measureText(num).width;
-          const supSize = Math.round(parseFloat(prev) * 0.65);
-          ctx.font = `${supSize}px Inter, system-ui, sans-serif`;
-          const wSup = ctx.measureText(suf).width;
-          ctx.font = prev;
-          const wTail = ctx.measureText(" " + tail).width;
-          return wNum + wSup + wTail;
-        }
-        m = text.match(/^(\d+)(st|nd|rd|th)$/i);
-        if (m) {
-          const [, num, suf] = m;
-          const prev = ctx.font;
-          const wNum = ctx.measureText(num).width;
-          const supSize = Math.round(parseFloat(prev) * 0.65);
-          ctx.font = `${supSize}px Inter, system-ui, sans-serif`;
-          const wSup = ctx.measureText(suf).width;
-          ctx.font = prev;
-          return wNum + wSup;
-        }
-        if (/^[♭♯]\d+(\/[♭♯]\d+)?$/.test(text)) {
-          const parts = text.split("/");
-          const prev = ctx.font;
-          const supSize = Math.round(parseFloat(prev) * 0.65);
-          const measureAcc = (part: string) => {
-            const mm = part.match(/^([♭♯])(\d+)$/);
-            if (!mm) return ctx.measureText(part).width;
-            const [, acc, num] = mm;
-            const wAcc = ctx.measureText(acc).width;
-            ctx.font = `${supSize}px Inter, system-ui, sans-serif`;
-            const wNum = ctx.measureText(num).width;
-            ctx.font = prev;
-            return wAcc + wNum;
-          };
-          let w = measureAcc(parts[0]);
-          if (parts[1]) w += ctx.measureText("/").width + measureAcc(parts[1]);
-          return w;
-        }
-        return ctx.measureText(text).width;
+        return measureTokenWithSup(ctx, text);
       }
       function drawTokenWithSupE(ctx: CanvasRenderingContext2D, text: string, x: number, y: number): number {
-        let m = text.match(/^(\d+)(st|nd|rd|th)\s+(inv)$/i);
-        if (m) {
-          const [, num, suf, tail] = m;
-          ctx.fillText(num, x, y);
-          const wNum = ctx.measureText(num).width;
-          const supSize = Math.round(parseFloat(ctx.font) * 0.65);
-          const prev = ctx.font;
-          ctx.font = `${supSize}px Inter, system-ui, sans-serif`;
-          ctx.fillText(suf, x + wNum, y - supSize * 0.35);
-          const wSup = ctx.measureText(suf).width;
-          ctx.font = prev;
-          ctx.fillText(" " + tail, x + wNum + wSup, y);
-          return wNum + wSup + ctx.measureText(" " + tail).width;
-        }
-        m = text.match(/^(\d+)(st|nd|rd|th)$/i);
-        if (m) {
-          const [, num, suf] = m;
-          ctx.fillText(num, x, y);
-          const wNum = ctx.measureText(num).width;
-          const supSize = Math.round(parseFloat(ctx.font) * 0.65);
-          const prev = ctx.font;
-          ctx.font = `${supSize}px Inter, system-ui, sans-serif`;
-          ctx.fillText(suf, x + wNum, y - supSize * 0.35);
-          const wSup = ctx.measureText(suf).width;
-          ctx.font = prev;
-          return wNum + wSup;
-        }
-        if (/^[♭♯]\d+(\/[♭♯]\d+)?$/.test(text)) {
-          const parts = text.split("/");
-          const prev = ctx.font;
-          const supSize = Math.round(parseFloat(prev) * 0.65);
-          const drawAcc = (part: string, x0: number) => {
-            const mm = part.match(/^([♭♯])(\d+)$/);
-            if (!mm) {
-              ctx.fillText(part, x0, y);
-              return ctx.measureText(part).width;
-            }
-            const [, acc, num] = mm;
-            ctx.fillText(acc, x0, y);
-            const wAcc = ctx.measureText(acc).width;
-            ctx.font = `${supSize}px Inter, system-ui, sans-serif`;
-            ctx.fillText(num, x0 + wAcc, y - supSize * 0.35);
-            const wNum = ctx.measureText(num).width;
-            ctx.font = prev;
-            return wAcc + wNum;
-          };
-          let dx = 0;
-          dx += drawAcc(parts[0], x);
-          if (parts[1]) {
-            ctx.fillText("/", x + dx, y);
-            dx += ctx.measureText("/").width;
-            dx += drawAcc(parts[1], x + dx);
-          }
-          return dx;
-        }
-        ctx.fillText(text, x, y);
-        return ctx.measureText(text).width;
+        return drawTokenWithSup(ctx, text, x, y);
       }
 
       const srcStrE = (raw || "").toUpperCase();
@@ -1964,12 +1874,7 @@ function updateAndDrawConfetti(ctx: CanvasRenderingContext2D, dtSec: number) {
         }
       }
 
-      function drawExportCaption(
-        ctx: CanvasRenderingContext2D,
-        activePlayable: number,
-        keyNow: KeyName,
-        showBottom: boolean
-      ) {
+      function drawExportCaption(ctx: CanvasRenderingContext2D, activePlayable: number, showBottom: boolean) {
         const src = (raw || "").toUpperCase().split("");
         const playable = tokens.filter((t) => t.kind === "deg" || t.kind === "chroma");
 
@@ -2017,26 +1922,18 @@ function updateAndDrawConfetti(ctx: CanvasRenderingContext2D, dtSec: number) {
         let x = capX + Math.max(0, (capW - totalW) / 2);
 
         const activeChar = activePlayable >= 0 && activePlayable < p2cE.length ? p2cE[activePlayable] : -1;
-        const activeColor =
-          keyNow === "BbMajor"
-            ? bg === "dark"
-              ? themeDark.gold
-              : themeLight.gold
-            : bg === "dark"
-            ? themeDark.minor
-            : themeLight.minor;
 
         // top line
         for (let i = 0; i < disp.length; i++) {
           const el = disp[i];
           if (el.isSep) {
-            ctx.fillStyle = bg === "dark" ? themeDark.muted : themeLight.muted;
+            ctx.fillStyle = IOS.muted;
             ctx.fillText(el.txt, x, topY);
             x += widths[i];
             continue;
           }
           const isActive = el.charIndex === activeChar;
-          ctx.fillStyle = isActive ? activeColor : bg === "dark" ? themeDark.text : themeLight.text;
+          ctx.fillStyle = isActive ? activeColor : IOS.text;
           ctx.fillText(el.txt, x, topY);
           x += widths[i];
         }
@@ -2061,7 +1958,7 @@ function updateAndDrawConfetti(ctx: CanvasRenderingContext2D, dtSec: number) {
           }
 
           const isActive = el.charIndex === activeChar;
-          ctx.fillStyle = isActive ? activeColor : bg === "dark" ? themeDark.text : themeLight.text;
+          ctx.fillStyle = isActive ? activeColor : IOS.text;
 
           if (lab === "♭2/♯4") {
             const topLab = "♭2";
@@ -2122,51 +2019,40 @@ function updateAndDrawConfetti(ctx: CanvasRenderingContext2D, dtSec: number) {
         const dtSec = lastTs ? (nowTs - lastTs) / 1000 : 1 / FPS;
         lastTs = nowTs;
 
-        c.fillStyle = bg === "dark" ? themeDark.bg : themeLight.bg;
+        c.fillStyle = IOS.pageBg;
         c.fillRect(0, 0, canvas.width, canvas.height);
-
-        c.save();
-        c.strokeStyle = bg === "dark" ? themeDark.gold : themeLight.gold;
-        c.lineWidth = 2 * SCALE;
-        c.strokeRect((SIDE_PAD / 2) * SCALE, SAFE_TOP * SCALE, (FRAME_W - SIDE_PAD) * SCALE, (drawH + dateBlockH + TOP_GAP) * SCALE);
-        c.restore();
 
         c.drawImage(bgImg, 0, 0, liveW, liveH, drawX * SCALE, drawY * SCALE, drawW * SCALE, drawH * SCALE);
 
-        if (trailMode !== "pulse") {
+        if (trailMode === "glow") {
           const ovImg = overlayImgs[i];
           if (ovImg) c.drawImage(ovImg, 0, 0, liveW, liveH, drawX * SCALE, drawY * SCALE, drawW * SCALE, drawH * SCALE);
         }
-        const segIdx = Math.floor(i / TOK_COUNT_E) % SEGMENTS_E.length;
-        const keyNowE: KeyName = SEGMENTS_E[segIdx];
-        // EXPORT visuals:
-// - "pulse" => draw pulse each frame
-// - "+confetti" => spawn on new steps + animate each frame
-if (trailMode === "pulse" || trailMode.includes("+confetti")) {
-  const stepStartMs = i * NOTE_MS_E;
-  const frac = Math.max(0, Math.min(1, (elapsed - stepStartMs) / NOTE_MS_E));
-  drawPulseForStep(c, i, keyNowE, frac);
-}
 
-        
+        // EXPORT visuals:
+        // - "pulse" => draw pulse each frame
+        // - "+confetti" => spawn on new steps + animate each frame
+        if (trailMode === "pulse") {
+          const stepStartMs = i * NOTE_MS_E;
+          const frac = Math.max(0, Math.min(1, (elapsed - stepStartMs) / NOTE_MS_E));
+          drawPulseForStep(c, i, frac);
+        }
 
         if (i > prevStep) {
-  for (let s = prevStep + 1; s <= i; s++) {
-    // spawn confetti for any step that has exportPoints
-    spawnConfettiForStep(s);
+          for (let s = prevStep + 1; s <= i; s++) {
+            spawnConfettiForStep(s);
 
-    if (s % TOK_COUNT_E === 0) playedIdxE = 0;
-    const t = tokens[s % TOK_COUNT_E];
-    if (t && (t.kind === "deg" || t.kind === "chroma")) playedIdxE++;
-  }
-  prevStep = i;
-}
+            if (s === 0) playedIdxE = 0;
+            const t = tokens[s];
+            if (t && (t.kind === "deg" || t.kind === "chroma")) playedIdxE++;
+          }
+          prevStep = i;
+        }
 
         const activePlayableIdx = Math.max(0, playedIdxE - 1);
-        const showBottomThisFrame = SHOW_DEGREES_CAPTION_LINE && (segIdx === 1 && keyNowE === "BbMajor");
-        drawExportCaption(c, activePlayableIdx, keyNowE, showBottomThisFrame);
-        // animate confetti every frame (only in +confetti modes)
-updateAndDrawConfetti(c, dtSec);
+        const showBottomThisFrame = SHOW_DEGREES_CAPTION_LINE;
+        drawExportCaption(c, activePlayableIdx, showBottomThisFrame);
+        updateAndDrawConfetti(c, dtSec);
 
         if (elapsed < TOTAL_MS_FIXED) requestAnimationFrame(loop);
         else rec.stop();
@@ -2206,14 +2092,20 @@ updateAndDrawConfetti(c, dtSec);
     } finally {
       setIsExporting(false);
     }
-  }, [raw, bg, trailMode, zeroPolicy, tokens, T.gold, T.minor, SEGMENTS]);
+  }, [raw, trailMode, zeroPolicy, tokens, keyNow, mood, activeColor]);
 
   /* =========================
      Render
 ========================= */
+  const KEY_RADIUS = 10.4;
+
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, color: T.text, overflowX: "hidden" }}>
-      <main className="vt-card" style={{ width: "100%", margin: "0 auto", padding: 12, boxSizing: "border-box", maxWidth: 520 }} ref={panelRef}>
+    <div style={{ minHeight: "100vh", background: IOS.pageBg, color: IOS.text, overflowX: "hidden" }}>
+      <main
+        className="vt-card"
+        style={{ width: "100%", margin: "0 auto", padding: 12, boxSizing: "border-box", maxWidth: 520 }}
+        ref={panelRef}
+      >
         {/* SEO: JSON-LD */}
         <script
           type="application/ld+json"
@@ -2244,7 +2136,7 @@ updateAndDrawConfetti(c, dtSec);
                   name: "What does ToneDial do?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "ToneDial converts phone text and words (T9) into melody with B♭ Major and C minor passes.",
+                    text: "ToneDial converts phone text and words (T9) into melody with a single mood (Brighter major or Darker minor).",
                   },
                 },
                 {
@@ -2263,36 +2155,37 @@ updateAndDrawConfetti(c, dtSec);
         <section
           className="vt-panel minw0"
           style={{
-            border: `1px solid ${T.border}`,
+            border: `1px solid ${IOS.cardBorder}`,
             borderRadius: 14,
             paddingTop: 12,
             paddingBottom: 12,
-            background: T.card,
+            background: IOS.cardBg,
             display: "grid",
-            gap: 6, // tightened so the full page fits better
+            gap: 6,
           }}
         >
           <ToyNavHeader
-  currentSlug="tone-dial"
-  title="ToneDial"
-  q={raw}
-  onBeforeNavigate={() => {
-    /* stop playback if running */
-  }}
-/>
-<div
-  style={{
-    margin: "2px 0 10px",
-    textAlign: "center",
-    fontSize: 14,
-    lineHeight: 1.3,
-    fontWeight: 500,
-    color: T.muted,
-    letterSpacing: 0.2,
-  }}
->
-  Each number feels different
-</div>
+            currentSlug="tone-dial"
+            title="ToneDial"
+            q={raw}
+            onBeforeNavigate={() => {
+              /* stop playback if running */
+            }}
+          />
+
+          <div
+            style={{
+              margin: "2px 0 10px",
+              textAlign: "center",
+              fontSize: 14,
+              lineHeight: 1.3,
+              fontWeight: 500,
+              color: IOS.muted,
+              letterSpacing: 0.2,
+            }}
+          >
+            Each number feels different
+          </div>
 
           <form
             className="minw0"
@@ -2300,28 +2193,39 @@ updateAndDrawConfetti(c, dtSec);
               e.preventDefault();
               if (raw.trim()) start();
             }}
-            style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center", flexWrap: "wrap", paddingInline: 2 }}
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              paddingInline: 2,
+            }}
           >
             <input
               value={raw}
               onChange={(e) => {
-  setRaw(sanitizePhoneInput(e.target.value));
-  if (SHOW_DEGREES_CAPTION_LINE) setShowTransformHelper(true);
-}}
+                setRaw(sanitizePhoneInput(e.target.value));
+                if (SHOW_DEGREES_CAPTION_LINE) setShowTransformHelper(true);
+              }}
               placeholder="+1-800 HI*THERE"
-              inputMode="text"
-              enterKeyHint="done"
+type="tel"
+inputMode="tel"
+autoComplete="tel"
+spellCheck={false}
+enterKeyHint="done"
               onKeyDown={onKeyDown}
               style={{
                 boxSizing: "border-box",
                 width: "min(92%, 34ch)",
-                background: bg === "dark" ? "#0F1821" : "#F3F5F8",
-                color: T.gold,
-                border: `1px solid ${T.border}`,
-                borderRadius: 8,
-                padding: "10px 12px",
+                background: "#FFFFFF",
+                color: IOS.text,
+                border: `1px solid ${IOS.cardBorder}`,
+                borderRadius: 12,
+                padding: "12px 14px",
                 fontSize: 16,
-                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace',
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace',
                 fontVariantNumeric: "tabular-nums",
               }}
               aria-label="Type a phone number"
@@ -2337,23 +2241,27 @@ updateAndDrawConfetti(c, dtSec);
                         style={{
                           padding: "1px 6px",
                           borderRadius: 6,
-                          background: bg === "dark" ? "#0F1821" : "#F3F5F8",
-                          border: `1px solid ${T.border}`,
-                          color: T.text,
+                          background: "#FFFFFF",
+                          border: `1px solid ${IOS.cardBorder}`,
+                          color: IOS.text,
                           whiteSpace: "nowrap",
                           fontSize: 13,
                         }}
                       >
                         {renderWithSupers(step)}
                       </span>
-                      {idx < currentChain.length - 1 ? <span aria-hidden="true" style={{ opacity: 0.6, fontSize: 12 }}>→</span> : null}
+                      {idx < currentChain.length - 1 ? (
+                        <span aria-hidden="true" style={{ opacity: 0.6, fontSize: 12 }}>
+                          →
+                        </span>
+                      ) : null}
                     </React.Fragment>
                   ))
                 : null}
             </div>
           )}
 
-          {/* Caption canvas (tightened with negative margins) */}
+          {/* Caption canvas */}
           <div
             className="minw0"
             style={{
@@ -2365,128 +2273,172 @@ updateAndDrawConfetti(c, dtSec);
             }}
           >
             <canvas
-  ref={captionCanvasRef}
-  width={360}
-  height={SHOW_DEGREES_CAPTION_LINE ? 84 : 44}
-  style={{ width: 360, height: SHOW_DEGREES_CAPTION_LINE ? 84 : 44, display: "block" }}
-  aria-label="Caption"
-/>
+              ref={captionCanvasRef}
+              width={360}
+              height={SHOW_DEGREES_CAPTION_LINE ? 84 : 44}
+              style={{ width: 360, height: SHOW_DEGREES_CAPTION_LINE ? 84 : 44, display: "block" }}
+              aria-label="Caption"
+            />
           </div>
 
-          {/* Circle (tightened) */}
+          {/* Keypad stage (SVG) + HTML overlay button for Call */}
           <div
             className="minw0"
             style={{
               display: "grid",
               justifyContent: "center",
               paddingInline: 2,
-              marginTop: -6,
+              marginTop: -4,
             }}
           >
-            <svg ref={svgRef} viewBox="0 0 100 100" width={360} height={360} style={{ overflow: "visible" }} shapeRendering="geometricPrecision">
-              <defs>
-                <filter id="vt-glow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b1" />
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="b2" />
-                  <feMerge>
-                    <feMergeNode in="b2" />
-                    <feMergeNode in="b1" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
+            <div style={{ position: "relative", width: 360, height: 420 }}>
+              <svg
+                ref={svgRef}
+                viewBox="0 0 100 115"
+                width={360}
+                height={420}
+                style={{ overflow: "visible" }}
+                shapeRendering="geometricPrecision"
+              >
+                <defs>
+                  <filter id="vt-glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b1" />
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="b2" />
+                    <feMerge>
+                      <feMergeNode in="b2" />
+                      <feMergeNode in="b1" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
 
-              {/* Ring (R toggle) */}
-              {showRing && (
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="36"
-                  stroke={bg === "dark" ? "rgba(230,235,242,0.15)" : "rgba(0,0,0,0.12)"}
-                  strokeWidth="2"
-                  fill="none"
-                />
-              )}
-
-              {/* Nodes + labels (H toggle controls these labels) */}
-              {DEGREE_ORDER.map((lab, i) => {
-                const p = nodePosition(i, 36);
-                const lp = labelPlacement(i, p);
-
-                const { text, isSpecial } = nodeLabelOverride(lab);
-                const baseFont = 4;
-                const specialFont = baseFont / 1.2;
-
-                return (
-                  <g key={lab}>
-                    <circle cx={p.x} cy={p.y} r="1.6" fill={bg === "dark" ? "rgba(230,235,242,0.5)" : "rgba(0,0,0,0.45)"} />
-                    {showNodeHelper && (
+                {/* Keys (display-only) */}
+                {KEYPAD_KEYS.map((k) => {
+                  const p = keyCenter(k.id);
+                  return (
+                    <g key={k.id} style={{ userSelect: "none", pointerEvents: "none" }}>
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r={KEY_RADIUS}
+                        fill={IOS.keyFill}
+                        stroke={IOS.keyStroke}
+                        strokeWidth={0.6}
+                      />
                       <text
-                        x={lp.x}
-                        y={lp.y}
-                        textAnchor={lp.anchor}
-                        dominantBaseline={lp.baseline}
-                        fontSize={isSpecial ? specialFont : baseFont}
-                        fill={T.text}
-                        style={{ userSelect: "none", pointerEvents: "none" }}
-                      >
-                        {text}
-                      </text>
-                    )}
+  x={p.x}
+  y={p.y - 1.2}
+  textAnchor="middle"
+  dominantBaseline="middle"
+  fontSize={k.digit === "*" || k.digit === "#" ? 11 : 13}
+  fill={IOS.text}
+  style={{ fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif" }}
+>
+  {k.digit}
+</text>
+{k.letters ? (
+  <text
+    x={p.x}
+    y={p.y + 7.0}
+    textAnchor="middle"
+    dominantBaseline="middle"
+    fontSize={4.0}
+    fill={IOS.muted}
+    style={{
+      fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif",
+      letterSpacing: "0.18em",
+      fontWeight: 600,
+    }}
+  >
+    {k.letters}
+  </text>
+) : null}
+                      {/* subtle key shadow (fake) */}
+                      <ellipse
+  cx={p.x}
+  cy={p.y + KEY_RADIUS + 4.1}
+  rx={KEY_RADIUS * 0.72}
+  ry={2.0}
+  fill={IOS.keyShadow}
+  opacity={0.10}
+/>
+                    </g>
+                  );
+                })}
+
+                {/* Call button visual (SVG only; click handled by HTML overlay) */}
+                {/* Call button visual (SVG only; click handled by HTML overlay) */}
+<g style={{ pointerEvents: "none" }}>
+  <circle cx={50} cy={104} r={10.2} fill={IOS.green} />
+  <path
+    d="M46.3 100.6c.6-1 1.3-1.5 2.1-1.5.7 0 1.4.3 2.1.9l1.3 1.2c.3.3.3.7.1 1.1l-1.1 1.9c.7 1.2 1.8 2.4 3 3l1.9-1.1c.4-.2.8-.2 1.1.1l1.2 1.3c.6.7.9 1.4.9 2.1 0 .8-.5 1.5-1.5 2.1-.7.4-1.6.6-2.7.3-2.5-.6-5.3-3.4-7-6-1.1-1.8-1.8-3.6-1.9-5.1-.1-1.1.1-2 .5-2.7z"
+    fill="#FFFFFF"
+  />
+</g>
+
+                {/* Lines / Glow overlay (single) */}
+                {trailMode === "glow" && overlayPath ? (
+  <path
+    data-ov="1"
+    d={overlayPath}
+    fill="none"
+    stroke={activeColor}
+    strokeWidth={1.15}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    filter="url(#vt-glow)"
+  />
+) : null}
+
+                <g id="embers" />
+
+                {/* Pulse (live) */}
+                {hotPulse ? (
+                  <g data-pulse="1">
+                    <circle cx={hotPulse.x} cy={hotPulse.y} r="2.2" fill={hotPulse.color} opacity="0.95" />
+                    <circle
+                      cx={hotPulse.x}
+                      cy={hotPulse.y}
+                      r="4.4"
+                      fill="none"
+                      stroke={hotPulse.color}
+                      strokeWidth="0.6"
+                      opacity="0.45"
+                    />
                   </g>
-                );
-              })}
+                ) : null}
+              </svg>
 
-              {trailMode !== "pulse" &&
-                overlays.map((ov) => (
-                  <path
-                    key={ov.id}
-                    d={ov.path}
-                    fill="none"
-                    stroke={ov.color}
-                    strokeWidth={trailMode.startsWith("lines") ? 1.4 : 1.15}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    filter={trailMode.startsWith("glow") ? "url(#vt-glow)" : undefined}
-                  />
-                ))}
-
-              <g id="embers" />
-
-              {hotPulse && (
-                <>
-                  <circle cx={hotPulse.x} cy={hotPulse.y} r="2.2" fill={hotPulse.color} opacity="0.95" />
-                  <circle cx={hotPulse.x} cy={hotPulse.y} r="4.4" fill="none" stroke={hotPulse.color} strokeWidth="0.6" opacity="0.45" />
-                </>
-              )}
-            </svg>
+              {/* HTML overlay button matching call circle */}
+              <button
+                type="button"
+                onClick={() => start()}
+                disabled={isRunning || !raw.trim()}
+                aria-label="Play"
+                title="Play"
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  top: `${(104 / 115) * 420}px`,
+                  transform: "translate(-50%, -50%)",
+                  width: `${(10.2 / 100) * 360 * 2}px`,
+                  height: `${(10.2 / 100) * 360 * 2}px`,
+                  borderRadius: 999,
+                  border: "none",
+                  background: "transparent",
+                  cursor: isRunning || !raw.trim() ? "not-allowed" : "pointer",
+                }}
+              />
+            </div>
           </div>
 
           {/* Actions */}
           <div className="vt-actions minw0" aria-label="Actions">
             {isExporting && (
-              <div style={{ color: T.muted, fontSize: 12, textAlign: "center", width: "100%", marginTop: 6 }}>
+              <div style={{ color: IOS.muted, fontSize: 12, textAlign: "center", width: "100%", marginTop: 6 }}>
                 ⏺️ Recording…
               </div>
             )}
-            <button
-              onClick={() => start()}
-              disabled={isRunning || !raw.trim()}
-              style={{
-                background: isRunning || !raw.trim() ? (bg === "dark" ? "#1a2430" : "#E8ECF2") : T.gold,
-                color: isRunning || !raw.trim() ? T.muted : bg === "dark" ? "#081019" : "#FFFFFF",
-                border: "none",
-                borderRadius: 999,
-                padding: "10px 16px",
-                fontWeight: 700,
-                cursor: isRunning || !raw.trim() ? "not-allowed" : "pointer",
-                fontSize: 16,
-                minHeight: 40,
-              }}
-              title={hasPlayed ? "⟲ Replay" : "▶ Play"}
-            >
-              {hasPlayed ? "⟲ Replay" : "▶ Play"}
-            </button>
 
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <button
@@ -2495,13 +2447,13 @@ updateAndDrawConfetti(c, dtSec);
                 title="Download"
                 style={{
                   background: "transparent",
-                  color: T.gold,
-                  border: "none",
+                  color: activeColor,
+                  border: `1px solid ${IOS.cardBorder}`,
                   borderRadius: 999,
-                  padding: "6px 10px",
-                  fontWeight: 700,
+                  padding: "8px 12px",
+                  fontWeight: 800,
                   cursor: !raw.trim() ? "not-allowed" : "pointer",
-                  minHeight: 32,
+                  minHeight: 34,
                   fontSize: 14,
                 }}
               >
@@ -2512,13 +2464,13 @@ updateAndDrawConfetti(c, dtSec);
                 title="Share"
                 style={{
                   background: "transparent",
-                  color: T.gold,
-                  border: "none",
+                  color: activeColor,
+                  border: `1px solid ${IOS.cardBorder}`,
                   borderRadius: 999,
-                  padding: "6px 10px",
-                  fontWeight: 700,
+                  padding: "8px 12px",
+                  fontWeight: 800,
                   cursor: "pointer",
-                  minHeight: 32,
+                  minHeight: 34,
                   fontSize: 14,
                 }}
               >
@@ -2534,46 +2486,28 @@ updateAndDrawConfetti(c, dtSec);
                 value={trailMode}
                 onChange={(e) => setTrailMode(e.target.value as TrailMode)}
                 style={{
-                  background: bg === "dark" ? "#0F1821" : "#F3F5F8",
-                  color: T.text,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 8,
-                  padding: "8px 10px",
+                  background: "#FFFFFF",
+                  color: IOS.text,
+                  border: `1px solid ${IOS.cardBorder}`,
+                  borderRadius: 12,
+                  padding: "10px 12px",
                   fontSize: 14,
                 }}
               >
                 <option value="pulse">Motion: Pulse</option>
-                <option value="glow">Motion: Glow</option>
-                <option value="lines">Motion: Lines</option>
-                <option value="glow+confetti">Motion: Glow & Confetti</option>
-                <option value="lines+confetti">Motion: Lines & Confetti</option>
-              </select>
-
-              <select
-                value={bg}
-                onChange={(e) => setBg(e.target.value as BgMode)}
-                style={{
-                  background: bg === "dark" ? "#0F1821" : "#F3F5F8",
-                  color: T.text,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 8,
-                  padding: "8px 10px",
-                  fontSize: 14,
-                }}
-              >
-                <option value="dark">Background: Dark</option>
-                <option value="light">Background: Light</option>
+<option value="glow">Motion: Glow lines</option>
+<option value="confetti">Motion: Confetti</option>
               </select>
 
               <select
                 value={zeroPolicy}
                 onChange={(e) => setZeroPolicy(e.target.value as ZeroPolicy)}
                 style={{
-                  background: bg === "dark" ? "#0F1821" : "#F3F5F8",
-                  color: T.text,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 8,
-                  padding: "8px 10px",
+                  background: "#FFFFFF",
+                  color: IOS.text,
+                  border: `1px solid ${IOS.cardBorder}`,
+                  borderRadius: 12,
+                  padding: "10px 12px",
                   fontSize: 14,
                 }}
               >
@@ -2583,63 +2517,20 @@ updateAndDrawConfetti(c, dtSec);
               </select>
 
               <select
-  value={passMode}
-  onChange={(e) => setPassMode(e.target.value as PassMode)}
-  style={{
-    background: bg === "dark" ? "#0F1821" : "#F3F5F8",
-    color: T.text,
-    border: `1px solid ${T.border}`,
-    borderRadius: 8,
-    padding: "8px 10px",
-    fontSize: 14,
-  }}
->
-  <option value="3M">Mood: Brighter</option>
-  <option value="3m">Mood: Darker</option>
-  <option value="2M2m">Mood: Balanced</option>
-  <option value="2M2m">Mood: Balanced (Brighter → Darker)</option>
-  <option value="2m2M">Mood: Balanced (Darker → Brighter)</option>
-</select>
-            </div>
-
-            {/* NEW: R / H toggles (gray) */}
-            <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => setShowRing((v) => !v)}
-                title="Ring"
+                value={mood}
+                onChange={(e) => setMood(e.target.value as Mood)}
                 style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 8,
-                  border: `1px solid ${T.border}`,
-                  background: showRing ? (bg === "dark" ? "#0F1821" : "#F3F5F8") : "transparent",
-                  color: T.muted, // gray
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  lineHeight: "30px",
+                  background: "#FFFFFF",
+                  color: IOS.text,
+                  border: `1px solid ${IOS.cardBorder}`,
+                  borderRadius: 12,
+                  padding: "10px 12px",
+                  fontSize: 14,
                 }}
               >
-                R
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowNodeHelper((v) => !v)}
-                title="Helper"
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 8,
-                  border: `1px solid ${T.border}`,
-                  background: showNodeHelper ? (bg === "dark" ? "#0F1821" : "#F3F5F8") : "transparent",
-                  color: T.muted, // gray
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  lineHeight: "30px",
-                }}
-              >
-                H
-              </button>
+                <option value="3M">Mood: Brighter</option>
+                <option value="3m">Mood: Darker</option>
+              </select>
             </div>
           </div>
         </section>
@@ -2652,14 +2543,14 @@ updateAndDrawConfetti(c, dtSec);
               display: "inline-flex",
               alignItems: "center",
               gap: "6px",
-              fontWeight: 700,
+              fontWeight: 800,
               fontSize: 15,
-              color: T.gold,
+              color: activeColor,
               textDecoration: "none",
-              border: `1px solid ${T.border}`,
-              borderRadius: 12,
-              padding: "8px 14px",
-              boxShadow: bg === "dark" ? "0 1px 3px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.06)",
+              border: `1px solid ${IOS.cardBorder}`,
+              borderRadius: 14,
+              padding: "10px 14px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
             }}
             aria-label="Why these numbers explanation"
           >
@@ -2673,10 +2564,10 @@ updateAndDrawConfetti(c, dtSec);
           onClose={() => setShareOpen(false)}
           url={typeof window === "undefined" ? "" : buildShareUrl()}
           themeColors={{
-            gold: T.gold,
-            border: T.border,
-            text: T.text,
-            bg: bg === "dark" ? themeDark.card : themeLight.card,
+            gold: activeColor,
+            border: IOS.cardBorder,
+            text: IOS.text,
+            bg: IOS.cardBg,
           }}
         />
       </main>
@@ -2735,7 +2626,7 @@ function ShareSheet({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ textAlign: "center", color: themeColors.text, fontWeight: 800, marginBottom: 8 }}>Share your melody</div>
+        <div style={{ textAlign: "center", color: themeColors.text, fontWeight: 900, marginBottom: 8 }}>Share your melody</div>
 
         <button
           onClick={async () => {
@@ -2750,9 +2641,9 @@ function ShareSheet({
             marginBottom: 6,
             background: themeColors.gold,
             color: "#081019",
-            borderRadius: 8,
+            borderRadius: 12,
             border: "none",
-            fontWeight: 800,
+            fontWeight: 900,
           }}
         >
           🔗 Copy Link
@@ -2771,10 +2662,10 @@ function ShareSheet({
             marginBottom: 6,
             background: "transparent",
             color: themeColors.gold,
-            borderRadius: 8,
+            borderRadius: 12,
             border: `1px solid ${themeColors.border}`,
             textDecoration: "none",
-            fontWeight: 800,
+            fontWeight: 900,
           }}
         >
           𝕏 Share on X
@@ -2789,9 +2680,9 @@ function ShareSheet({
             background: themeColors.bg,
             color: themeColors.text,
             opacity: 0.7,
-            borderRadius: 8,
+            borderRadius: 12,
             border: `1px solid ${themeColors.border}`,
-            fontWeight: 700,
+            fontWeight: 800,
           }}
         >
           Close
