@@ -14,9 +14,8 @@ import { playProgression } from "@/lib/harmony/audio";
 import ToyNavHeader from "@/app/components/toys/ToyNavHeader";
 
 /* =========================
-   Theme (Dark + Light)
+   Theme (Dark only)
 ========================= */
-type BgMode = "dark" | "light";
 const themeDark = {
   bg: "#0B0F14",
   card: "#111820",
@@ -24,20 +23,7 @@ const themeDark = {
   text: "#E6EBF2",
   muted: "#8B94A7",
   gold: "#EBCF7A",
-  minor: "#69D58C",
 };
-const themeLight = {
-  bg: "#F5F6F8",
-  card: "#FFFFFF",
-  border: "#D9DEE7",
-  text: "#1B2430",
-  muted: "#667083",
-  gold: "#B08900",
-  minor: "#1E7B45",
-};
-function pickTheme(mode: BgMode) {
-  return mode === "dark" ? themeDark : themeLight;
-}
 
 /* =========================
    Circle geometry
@@ -172,7 +158,7 @@ function drawCaptionCanvas(
   ctx: CanvasRenderingContext2D,
   chords: ParsedChord[],
   activeIdx: number,
-  T: ReturnType<typeof pickTheme>,
+  T: { gold: string; muted: string },
 ) {
   const cvs = ctx.canvas;
   const cssW = Math.round(cvs.getBoundingClientRect().width || 360);
@@ -207,11 +193,29 @@ function drawCaptionCanvas(
 /* =========================
    Page
 ========================= */
-type VizMode = "circle" | "constellation";
-type PlayMode = "chords" | "arpeggio";
+// VizMode + PlayMode retired (constellation-only, chords-only)
 
 const DEFAULT_PROG = "C Am | F G7";
 const BASE_DURATION_PER_CHORD = 0.9;
+
+type MotionPreset = {
+  id: string;
+  title: string;
+  emoji?: string;
+  progression: string; // tokens separated by spaces, uses # and b
+};
+
+const CINEMATIC_MOTIONS: MotionPreset[] = [
+    { id: "heroic", title: "Heroic", emoji: "🛡️", progression: "A B B A B B" },
+  { id: "outer-space", title: "Outer space", emoji: "🪐", progression: "G# D D D G# D" },
+  { id: "fantastical", title: "Fantastical", emoji: "🧚", progression: "G# E E G# E" },
+  { id: "loss", title: "Loss", emoji: "🕯️", progression: "Bb Dm Bb Dm Dm Dm" },
+  { id: "transcendence", title: "Transcendence", emoji: "✨", progression: "C#m F# F# F# C#m F#" },
+  { id: "drama", title: "Drama", emoji: "🎭", progression: "Cm B B Cm B" },
+  { id: "danger", title: "Danger", emoji: "⚠️", progression: "Cm F#m F#m F#m Cm F#m" },
+  { id: "evil", title: "Evil", emoji: "🕷️", progression: "Cm G#m G#m G#m Cm G#m G#m" },
+  { id: "custom", title: "Custom", emoji: "✍️", progression: "" },
+];
 /* =========================
    EXPORT HELPERS (SVG → image, MediaRecorder, Audio, etc.)
 ========================= */
@@ -332,10 +336,11 @@ function drawExportCaptionLine(
   xCenter: number,        // FRAME_W * SCALE / 2
   y: number,              // pixel Y
   scale: number,          // SCALE (e.g. 2)
-  T: { gold: string; muted: string; text: string }
+  T: { gold: string; muted: string; text: string },
+  sizeMul = 1
 ) {
-  const px = 44 * scale;                 // caption font size (export)
-  const gap = 28 * scale;                // spacing between items
+  const px = 44 * scale * sizeMul;       // caption font size (export)
+const gap = 28 * scale * sizeMul;      // spacing between items
   ctx.save();
   ctx.font = `${px}px Inter, system-ui, sans-serif`;
   ctx.textBaseline = "middle";
@@ -356,14 +361,24 @@ function drawExportCaptionLine(
 }
 
 export default function ShapeOfHarmonyPage() {
-  const [bg, setBg] = useState<BgMode>("dark");
-  const T = pickTheme(bg);
+  const T = themeDark;
 
-  const [input, setInput] = useState(DEFAULT_PROG);
-  const chords = useMemo<ParsedChord[]>(() => parseProgression(input), [input]);
+  const [selectedMotionId, setSelectedMotionId] = useState<string>(CINEMATIC_MOTIONS[0].id);
 
-  const [vizMode, setVizMode] = useState<VizMode>("circle");
-  const [playMode, setPlayMode] = useState<PlayMode>("chords");
+
+const [input, setInput] = useState(DEFAULT_PROG);
+
+const selectedMotion = useMemo(() => {
+  return CINEMATIC_MOTIONS.find((m) => m.id === selectedMotionId) || CINEMATIC_MOTIONS[0];
+}, [selectedMotionId]);
+
+const isCustom = selectedMotionId === "custom";
+
+const activeProgression = isCustom ? input : selectedMotion.progression;
+
+const chords = useMemo<ParsedChord[]>(() => parseProgression(activeProgression), [activeProgression]);
+
+  
   const [playing, setPlaying] = useState(false);
   const [tempoMode, setTempoMode] = useState<"epic" | "dynamic">("epic");
   const [finalPaths, setFinalPaths] = useState<string[]>([]);
@@ -405,7 +420,7 @@ runEndRef.current =
   startRef.current + totalStepsRef.current * chordDur * 1000;
 
 // Audio: single pass (live + export share timing)
-playProgression(chords, { playMode, chordDur }).catch(() => {});
+playProgression(chords, { playMode: "chords", chordDur }).catch(() => {});
 
 // Visuals: RAF loop
 const loopFn = () => {
@@ -454,7 +469,14 @@ rafRef.current = requestAnimationFrame(loopFn);
     const idxs = c.pcs.slice().sort((a, b) => a - b);
     return pathFromIndices(idxs);
   });
-
+function restartPlayback() {
+  // Visual stop (audio is not canceled by design)
+  onStop();
+  // Start new selection on next tick so state updates settle
+  setTimeout(() => {
+    onPlay();
+  }, 0);
+}
   setFinalPaths(finals);
   setPlaying(false);
   setHighlightRoot(null);
@@ -469,37 +491,21 @@ rafRef.current = requestAnimationFrame(loopFn);
   const onDownloadVideo = async () => {
   if (isExporting) return;
   setIsExporting(true);
+
   try {
     const svgEl = svgRef.current;
-    if (!svgEl || !chords.length) {
-      setIsExporting(false);
-      return;
-    }
+    if (!svgEl || !chords.length) return;
 
-    // 1) Snapshot background (outer ring only)
-const rect = svgEl.getBoundingClientRect();
-const liveW = Math.max(2, Math.floor(rect.width));
-const liveH = Math.max(2, Math.floor(rect.height));
-
-// Clone + strip polygons, nodes and labels so we keep only the outer ring
-const clone = svgEl.cloneNode(true) as SVGSVGElement;
-clone.querySelectorAll("path").forEach((p) => p.remove());
-// Remove all small node circles and labels; keep only main ring circle
-clone.querySelectorAll("circle").forEach((c) => {
-  const cx = c.getAttribute("cx");
-  const cy = c.getAttribute("cy");
-  const r = c.getAttribute("r");
-  if (!(cx === "50" && cy === "50" && r === "36")) {
-    c.remove();
-  }
-});
-clone.querySelectorAll("text").forEach((t) => t.remove());
+    // 1) Snapshot the live SVG (we keep it as a static background image)
+    const rect = svgEl.getBoundingClientRect();
+    const liveW = Math.max(2, Math.floor(rect.width));
+    const liveH = Math.max(2, Math.floor(rect.height));
 
     const css = await buildEmbeddedFontStyle();
-    const rawBg = serializeFullSvg(clone, liveW, liveH, css);
+    const rawBg = serializeFullSvg(svgEl, liveW, liveH, css);
     const bgImg = await svgToImage(rawBg);
 
-    // 2) Canvas + recorder (ToneDial-style)
+    // 2) Canvas + recorder
     const FRAME_W = 1080;
     const FRAME_H = 1920;
     const FPS = 30;
@@ -512,6 +518,7 @@ clone.querySelectorAll("text").forEach((t) => t.remove());
 
     const ac = await getAC();
     const exportDst = ac.createMediaStreamDestination();
+
     const stream = (canvas as any).captureStream(FPS) as MediaStream;
     const mixed = new MediaStream([
       ...stream.getVideoTracks(),
@@ -525,76 +532,93 @@ clone.querySelectorAll("text").forEach((t) => t.remove());
       if (e.data.size > 0) chunks.push(e.data);
     };
 
-    // 3) Layout (center the circle)
+    // 3) Layout (center content)
     const SIDE = 48;
     const SAFE_TOP = 140;
     const SAFE_BOTTOM = 120;
     const titleH = 34 * SCALE;
 
     const goldTop = SAFE_TOP + titleH + 12 * SCALE;
-    const availW = FRAME_W - SIDE * 2;
-    const availH = FRAME_H - SAFE_TOP - SAFE_BOTTOM - titleH - 12 * SCALE;
+
+// Reserve space at the bottom for the caption line + breathing room
+const CAPTION_RESERVE = 220; // in FRAME px (not scaled). tunes the "wide padding"
+const availW = FRAME_W - SIDE * 2;
+const availH = FRAME_H - SAFE_TOP - SAFE_BOTTOM - titleH - 12 * SCALE - CAPTION_RESERVE;
+
     const scaleContent = Math.min(availW / liveW, availH / liveH);
     const drawW = Math.round(liveW * scaleContent);
     const drawH = Math.round(liveH * scaleContent);
     const drawX = Math.round((FRAME_W - drawW) / 2);
     const drawY = Math.round(goldTop);
-
-    // 4) Timeline: 2 passes + constellation hold (deterministic)
+const captionY = (FRAME_H - 140) * SCALE; // bottom area; sits above very bottom
+    // 4) Timeline
     const chordDur =
-  tempoMode === "epic"
-    ? BASE_DURATION_PER_CHORD
-    : BASE_DURATION_PER_CHORD / 1.4;
-    const passes = 1;
-    const totalChords = chords.length * passes;
+      tempoMode === "epic"
+        ? BASE_DURATION_PER_CHORD
+        : BASE_DURATION_PER_CHORD / 1.4;
+
     const NOTE_MS = chordDur * 1000;
-    const chordsMs = totalChords * NOTE_MS;
-    const holdMs = 900;
+    const chordsMs = chords.length * NOTE_MS;
+    const holdMs = 1200;
     const totalMs = chordsMs + holdMs;
 
     const captionLabels = chords.map((c) => c.label || "");
+    const finalPathsLocal = chords.map((c) => {
+  const idxs = c.pcs.slice().sort((a, b) => a - b);
+  return { d: pathFromIndices(idxs), chord: c };
+});
+const exportTitle =
+  selectedMotionId === "custom"
+    ? "Constellation"
+    : `${selectedMotion?.emoji || ""} ${selectedMotion?.title || "Motion"}`.trim();
 
     // 5) AUDIO schedule (export graph → dst + speakers)
-const baseOct = 4;
-const startAt = ac.currentTime + 0.25;
-let tAudio = startAt;
+    const baseOct = 4;
+    const startAt = ac.currentTime + 0.25;
+    let tAudio = startAt;
 
-for (const c of chords) {
-  const isBarPause = c.label === "|" && (!c.pcs || c.pcs.length === 0);
+    for (const c of chords) {
+      const isBarPause = c.label === "|" && (!c.pcs || c.pcs.length === 0);
 
-  if (isBarPause) {
-    // Bar '|' → silent pause, 1.5x longer than a normal chord
-    tAudio += chordDur * 1.5;
-    continue;
-  }
+      if (isBarPause) {
+        tAudio += chordDur * 1.5;
+        continue;
+      }
 
-  const names = c.pcs.map((pc) => `${sharpName(pc)}${baseOct}`);
-  if (!names.length) {
-    // Just in case: empty chord but not tagged as bar
-    tAudio += chordDur;
-    continue;
-  }
+      const names = c.pcs.map((pc) => `${sharpName(pc)}${baseOct}`);
+      if (!names.length) {
+        tAudio += chordDur;
+        continue;
+      }
 
-  const bufs = await Promise.all(names.map(loadNoteBuffer));
-  bufs.forEach((buf) => {
-    const src = ac.createBufferSource();
-    src.buffer = buf;
-    const g = ac.createGain();
-    g.gain.value = 0.95;
-    src.connect(g);
-    g.connect(ac.destination);
-    g.connect(exportDst);
-    try {
-      src.start(tAudio);
-      src.stop(tAudio + chordDur);
-    } catch {}
-  });
+      const bufs = await Promise.all(names.map(loadNoteBuffer));
+      bufs.forEach((buf) => {
+        const src = ac.createBufferSource();
+        src.buffer = buf;
 
-  tAudio += chordDur;
-}
+        const g = ac.createGain();
+        g.gain.value = 0.95;
+
+        src.connect(g);
+        g.connect(ac.destination);
+        g.connect(exportDst);
+
+        try {
+          src.start(tAudio);
+          src.stop(tAudio + chordDur);
+        } catch {}
+      });
+
+      tAudio += chordDur;
+    }
 
     // 6) Drawing helpers
-    function drawBaseCircle() {
+    function drawBase() {
+      // Background
+      ctx.fillStyle = themeDark.bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Static svg snapshot
       ctx.drawImage(
         bgImg,
         0,
@@ -607,195 +631,150 @@ for (const c of chords) {
         drawH * SCALE
       );
     }
-        function drawCircleOverlayForChord(
-      activeChord: ParsedChord | null,
-      phase: number,
-      isPlaying: boolean
-    ) {
+    function drawTitle() {
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillStyle = themeDark.text;
+  ctx.font = `${36 * SCALE}px Inter, system-ui, sans-serif`;
+  ctx.fillText(exportTitle, (FRAME_W * SCALE) / 2, SAFE_TOP * SCALE);
+  ctx.restore();
+}
+
+    function drawChordPolygon(chord: ParsedChord) {
       ctx.save();
       ctx.translate(drawX * SCALE, drawY * SCALE);
       ctx.scale((drawW * SCALE) / 100, (drawH * SCALE) / 100);
 
-      const theme = bg === "dark" ? themeDark : themeLight;
-      const activeRoot = activeChord?.root ?? null;
-      const activeColor = activeChord
-        ? getChordColor(activeChord, bg).stroke
-        : theme.text;
-
-      // Nodes (with strong pulsing root in chord color)
-      for (let i = 0; i < 12; i++) {
-        const p = nodePosition(i, 36);
-        const isRoot = isPlaying && activeRoot != null && i === activeRoot;
-
-        const baseR = 1.6;
-        const pulse =
-          isRoot && !Number.isNaN(phase)
-            ? baseR + 2.4 * Math.pow(Math.sin(phase * Math.PI), 2)
-            : baseR;
-
-        ctx.save();
-        if (isRoot) {
-          ctx.shadowBlur = 12;
-          ctx.shadowColor = activeColor;
-        }
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, pulse, 0, Math.PI * 2);
-        ctx.fillStyle = isRoot ? activeColor : theme.text;
-        ctx.globalAlpha = isRoot ? 1 : 0.25;
-        ctx.fill();
-        ctx.globalAlpha = 1;
+      const { stroke } = getChordColor(chord, "dark");
+      const pcs = chord.pcs.slice().sort((a, b) => a - b);
+      const pts = pcs.map((i) => nodePosition(i, 36));
+      if (!pts.length) {
         ctx.restore();
+        return;
       }
 
-      // Labels: all when idle, root-only when chord is playing
-      for (let i = 0; i < 12; i++) {
-        const p = nodePosition(i, 36);
-        const lp = labelPlacement(i, p);
+      const buildPath = () => {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k].x, pts[k].y);
+        ctx.closePath();
+      };
 
-        const isRoot = activeRoot != null && i === activeRoot;
-        const showThisLabel =
-          !isPlaying || activeRoot == null || isRoot;
+      // Soft halo
+      ctx.save();
+      buildPath();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1.6;
+      ctx.shadowBlur = 28;
+      ctx.shadowColor = stroke;
+      ctx.globalAlpha = 0.9;
+      ctx.globalCompositeOperation = "lighter";
+      ctx.stroke();
+      ctx.restore();
 
-        if (!showThisLabel) continue;
-
-        // Map anchor/baseline to canvas textAlign/textBaseline
-        const align =
-          lp.anchor === "start"
-            ? "left"
-            : lp.anchor === "end"
-            ? "right"
-            : "center";
-        const baseline =
-          lp.baseline === "hanging"
-            ? "hanging"
-            : lp.baseline === "middle"
-            ? "middle"
-            : "alphabetic";
-
-        ctx.font = "4px system-ui";
-        ctx.textAlign = align as CanvasTextAlign;
-        ctx.textBaseline = baseline as CanvasTextBaseline;
-        ctx.fillStyle = theme.text;
-        ctx.fillText(CHROMA_LABELS[i], lp.x, lp.y);
-      }
+      // Crisp core
+      ctx.save();
+      buildPath();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1.6;
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.stroke();
+      ctx.restore();
 
       ctx.restore();
     }
 
-   function drawPolygonForChord(chord: ParsedChord) {
+    function drawFinalConstellation() {
   ctx.save();
   ctx.translate(drawX * SCALE, drawY * SCALE);
   ctx.scale((drawW * SCALE) / 100, (drawH * SCALE) / 100);
 
-  const { stroke, fill } = getChordColor(chord, bg);
-  const pcs = chord.pcs.slice().sort((a, b) => a - b);
-  const pts = pcs.map((i) => nodePosition(i, 36));
+  for (const item of finalPathsLocal) {
+    const { stroke } = getChordColor(item.chord, "dark");
+    const d = item.d;
+    if (!d) continue;
 
-  if (pts.length === 0) {
-    ctx.restore();
-    return;
-  }
-
-  const buildPath = () => {
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k].x, pts[k].y);
-    ctx.closePath();
-  };
-
-  // -------- 1) Subtle fill glow (circle mode only) --------
-  if (vizMode !== "constellation") {
-    ctx.save();
-    buildPath();
-    ctx.fillStyle = fill;
-    ctx.globalAlpha = 0.55;
-    ctx.shadowBlur = 18;
-    ctx.shadowColor = fill;
-    ctx.globalCompositeOperation = "lighter";
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // -------- 2) Strong halo stroke (thin line, big blur) --------
-  ctx.save();
-  buildPath();
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = 1.8;        // same as live-ish
-  ctx.shadowBlur = 45;        // BIG blur => visible glow
-  ctx.shadowColor = stroke;
-  ctx.globalAlpha = 0.95;
-  ctx.globalCompositeOperation = "lighter";
-  ctx.stroke();
-  ctx.restore();
-
-  // -------- 3) Crisp core stroke on top --------
-  ctx.save();
-  buildPath();
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = 1.8;
-  ctx.shadowBlur = 0;
-  ctx.globalAlpha = 1;
-  ctx.globalCompositeOperation = "source-over";
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.restore();
-}
-
-  function drawConstellationFrame() {
-  ctx.save();
-  ctx.translate(drawX * SCALE, drawY * SCALE);
-  ctx.scale((drawW * SCALE) / 100, (drawH * SCALE) / 100);
-
-  chords.forEach((c) => {
-    const { stroke } = getChordColor(c, bg);
-    const pcs = c.pcs.slice().sort((a, b) => a - b);
-    const pts = pcs.map((i) => nodePosition(i, 36));
-    if (!pts.length) return;
-
-    const buildPath = () => {
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k].x, pts[k].y);
-      ctx.closePath();
-    };
+    const p = new Path2D(d);
 
     // Soft halo
     ctx.save();
-    buildPath();
     ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = 1.2;
     ctx.shadowBlur = 16;
     ctx.shadowColor = stroke;
     ctx.globalAlpha = 0.8;
     ctx.globalCompositeOperation = "lighter";
-    ctx.stroke();
+    ctx.stroke(p);
     ctx.restore();
 
     // Crisp line
     ctx.save();
-    buildPath();
     ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.0;
     ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = "source-over";
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.stroke();
+    ctx.stroke(p);
     ctx.restore();
-  });
+  }
 
   ctx.restore();
 }
 
-    // 7) Start recorder + deterministic frame loop
-    const t0 = performance.now();
-    let lastTs = 0;
+    function drawConstellationSnapshot() {
+      ctx.save();
+      ctx.translate(drawX * SCALE, drawY * SCALE);
+      ctx.scale((drawW * SCALE) / 100, (drawH * SCALE) / 100);
 
+      chords.forEach((c) => {
+        const { stroke } = getChordColor(c, "dark");
+        const pcs = c.pcs.slice().sort((a, b) => a - b);
+        const pts = pcs.map((i) => nodePosition(i, 36));
+        if (!pts.length) return;
+
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k].x, pts[k].y);
+        ctx.closePath();
+
+        // halo
+        ctx.save();
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1.2;
+        ctx.shadowBlur = 16;
+        ctx.shadowColor = stroke;
+        ctx.globalAlpha = 0.8;
+        ctx.globalCompositeOperation = "lighter";
+        ctx.stroke();
+        ctx.restore();
+
+        // crisp
+        ctx.save();
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1.0;
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      ctx.restore();
+    }
+
+    // 7) Record deterministic frames
+    const t0 = performance.now();
     rec.start();
+
     const hardStopTimer = window.setTimeout(() => {
       try {
         rec.stop();
@@ -803,37 +782,25 @@ for (const c of chords) {
     }, totalMs + 1000);
 
     function loop() {
-      const nowTs = performance.now();
-      const elapsed = nowTs - t0;
-      const _dtSec = lastTs ? (nowTs - lastTs) / 1000 : 1 / FPS;
-      lastTs = nowTs;
+      const elapsed = performance.now() - t0;
 
-      // Base background
-      ctx.fillStyle = bg === "dark" ? themeDark.bg : themeLight.bg;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // FINAL WINDOW: constellation-only + no highlight
       if (elapsed >= chordsMs) {
-        drawExportCaptionLine(
-          ctx,
-          captionLabels,
-          -1,
-          (FRAME_W * SCALE) / 2,
-          (SAFE_TOP + 100) * SCALE,
-          SCALE,
-          {
-            gold: bg === "dark" ? themeDark.gold : themeLight.gold,
-            muted: bg === "dark" ? themeDark.muted : themeLight.muted,
-            text: bg === "dark" ? themeDark.text : themeLight.text,
-          }
-        );
+        // Final hold: constellation snapshot + no caption highlight
+        drawBase();
+drawTitle();
+drawFinalConstellation();
 
-                  drawBaseCircle();
-  if (vizMode === "circle") {
-    drawCircleOverlayForChord(null, 0, false);
-  }
-  drawConstellationFrame();
-        
+drawExportCaptionLine(
+  ctx,
+  captionLabels,
+  -1,
+  (FRAME_W * SCALE) / 2,
+  captionY,
+  SCALE,
+  { gold: themeDark.gold, muted: themeDark.muted, text: themeDark.text },
+  0.5
+);
+
         if (elapsed >= totalMs) {
           rec.stop();
           return;
@@ -842,102 +809,78 @@ for (const c of chords) {
         return;
       }
 
-      // NORMAL WINDOW: animated chords (2 passes)
-      const idx = Math.min(
-        totalChords - 1,
-        Math.floor(elapsed / NOTE_MS)
-      );
-      const inChordMs = elapsed - idx * NOTE_MS;
-      const phase = Math.max(0, Math.min(1, inChordMs / NOTE_MS));
-      const chordIdx = idx % chords.length;
+      const chordIdx = Math.min(chords.length - 1, Math.floor(elapsed / NOTE_MS));
+      drawBase();
 
-      drawExportCaptionLine(
-        ctx,
-        captionLabels,
-        chordIdx,
-        (FRAME_W * SCALE) / 2,
-        (SAFE_TOP + 100) * SCALE,
-        SCALE,
-        {
-          gold: bg === "dark" ? themeDark.gold : themeLight.gold,
-          muted: bg === "dark" ? themeDark.muted : themeLight.muted,
-          text: bg === "dark" ? themeDark.text : themeLight.text,
-        }
-      );
+      drawTitle();
 
-      drawBaseCircle();
-            drawBaseCircle();
-if (vizMode === "circle") {
-  drawCircleOverlayForChord(chords[chordIdx], phase, true);
-}
+drawExportCaptionLine(
+  ctx,
+  captionLabels,
+  chordIdx,
+  (FRAME_W * SCALE) / 2,
+  captionY,
+  SCALE,
+  { gold: themeDark.gold, muted: themeDark.muted, text: themeDark.text },
+  0.5
+);
 
+      drawChordPolygon(chords[chordIdx]);
 
-      const A = chords[chordIdx];
-      if (playMode === "chords") {
-        drawPolygonForChord(A);
-      } else {
-        const B = chords[(chordIdx + 1) % chords.length];
-        const mapping = buildMinimalMotionMapping(A.pcs, B.pcs);
-        const pcsTween = tweenBetween(A.pcs, B.pcs, mapping, phase);
-        const fakeChord: ParsedChord = { label: A.label, pcs: pcsTween };
-        drawPolygonForChord(fakeChord);
-      }
-
-      if (elapsed < totalMs) {
-        requestAnimationFrame(loop);
-      } else {
-        rec.stop();
-      }
+      requestAnimationFrame(loop);
     }
 
     loop();
 
-    // 8) Finalize recording & save as MP4
     const recorded: Blob = await new Promise((res) => {
-  rec.onstop = () => {
+      rec.onstop = () => {
+        try {
+          try {
+            stream.getTracks().forEach((t) => t.stop());
+          } catch {}
+          try {
+            exportDst.stream.getTracks().forEach((t) => t.stop());
+          } catch {}
+          try {
+            window.clearTimeout(hardStopTimer);
+          } catch {}
+        } finally {
+          res(new Blob(chunks, { type: mimeType || "video/webm" }));
+        }
+      };
+    });
+
+    let outBlob: Blob = recorded;
+    let ext = "webm";
+
     try {
-      try { stream.getTracks().forEach((t) => t.stop()); } catch {}
-      try { exportDst.stream.getTracks().forEach((t) => t.stop()); } catch {}
-      try { window.clearTimeout(hardStopTimer); } catch {}
-    } finally {
-      res(new Blob(chunks, { type: mimeType || "video/webm" }));
+      const converted = await convertToMp4Server(recorded);
+      if ((converted.type || "").includes("mp4")) {
+        outBlob = converted;
+        ext = "mp4";
+      }
+    } catch (err) {
+      console.error("[SoH export] MP4 conversion failed, using WebM:", err);
     }
-  };
-});
 
-// Decide whether we really have MP4 or fall back to WebM
-let outBlob: Blob = recorded;
-let ext = "webm";
+    const rawName = (() => {
+  if (selectedMotionId !== "custom") return selectedMotion?.title || "Motion";
+  const s = (input || "").trim() || "custom";
+  return `Your (${s})`;
+})();
 
-try {
-  const converted = await convertToMp4Server(recorded);
-
-  if ((converted.type || "").includes("mp4")) {
-    outBlob = converted;
-    ext = "mp4";
-  } else {
-    console.warn(
-      "[SoH export] Conversion succeeded but output is not MP4 type:",
-      converted.type
-    );
-    // keep WebM, but keep ext="webm"
-  }
-} catch (err) {
-  console.error("[SoH export] MP4 conversion failed, using WebM:", err);
-  // outBlob stays as original recorded WebM, ext stays "webm"
-}
-
-// Safe filename
 const safe =
-  (input || "shape-of-harmony").replace(/[^A-Za-z0-9\-_.]+/g, "-") ||
-  "shape-of-harmony";
+  rawName
+    .replace(/[^A-Za-z0-9\-_.() ]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim() || "shape-of-harmony";
 
-const a = document.createElement("a");
-a.download = `${safe}.${ext}`;
-a.href = URL.createObjectURL(outBlob);
-document.body.appendChild(a);
-a.click();
-a.remove();
+    const a = document.createElement("a");
+    a.download = `${safe}.${ext}`;
+    a.href = URL.createObjectURL(outBlob);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   } catch (e) {
     console.error("[SoH export] error", e);
     try {
@@ -948,27 +891,34 @@ a.remove();
   }
 };
 
+// Browsing snapshot: when not playing, render all chord shapes (no chord text)
+useEffect(() => {
+  if (playing) return;
+
+  const finals = chords.map((c) => {
+    const idxs = c.pcs.slice().sort((a, b) => a - b);
+    return pathFromIndices(idxs);
+  });
+  setFinalPaths(finals);
+
+  // Ensure caption is visually cleared (and hidden anyway)
+  if (captionCanvasRef.current) {
+    const ctx = captionCanvasRef.current.getContext("2d");
+    if (ctx) drawCaptionCanvas(ctx, chords, -1, T);
+  }
+}, [playing, chords, T]);
+
   useEffect(() => () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
   }, []);
 
   // Current polygon path (live mode only)
   const currentPolygon = useMemo(() => {
-    if (!chords.length) return "";
-    const iA = stepIdx % chords.length;
-    const iB = (stepIdx + 1) % chords.length;
-    const A = chords[iA];
-    const B = chords[iB];
-
-    let pcs: number[] = [];
-    if (playMode === "chords") pcs = A.pcs; // discrete
-    else {
-      const mapping = buildMinimalMotionMapping(A.pcs, B.pcs);
-      pcs = tweenBetween(A.pcs, B.pcs, mapping, phase);
-    }
-    const indices = pcs.slice().sort((a, b) => a - b);
-    return pathFromIndices(indices);
-  }, [chords, stepIdx, phase, playMode]);
+  if (!chords.length) return "";
+  const A = chords[stepIdx % chords.length];
+  const indices = A.pcs.slice().sort((a, b) => a - b);
+  return pathFromIndices(indices);
+}, [chords, stepIdx]);
 
   return (
     <div
@@ -1021,111 +971,207 @@ a.remove();
     letterSpacing: 0.2,
   }}
 >
-  Your chords as shapes
+  Cinematic motions as constellations
 </div>
 
-          {/* Input + Play/Stop */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (input.trim()) onPlay();
-            }}
-            style={{
-              display: "flex",
-              gap: 8,
-              alignItems: "center",
-              justifyContent: "center",
-              flexWrap: "wrap",
-              paddingInline: 2,
-            }}
-          >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="C | Am | F | G7"
-              style={{
-                boxSizing: "border-box",
-                width: "min(92%, 34ch)",
-                background: bg === "dark" ? "#0F1821" : "#F3F5F8",
-                color: T.gold,
-                border: `1px solid ${T.border}`,
-                borderRadius: 8,
-                padding: "10px 12px",
-                fontSize: 16,
-                fontFamily:
-                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace',
-                fontVariantNumeric: "tabular-nums",
-              }}
-              aria-label="Enter chords"
-            />
-            <button
-              type="submit"
-              onClick={(e) => {
-                e.preventDefault();
-                if (!playing && input.trim()) onPlay();
-              }}
-              style={{
-                background: input.trim()
-                  ? T.gold
-                  : bg === "dark"
-                  ? "#1a2430"
-                  : "#E8ECF2",
-                color: input.trim()
-                  ? bg === "dark"
-                    ? "#081019"
-                    : "#111"
-                  : bg === "dark"
-                  ? T.muted
-                  : T.muted,
-                border: "none",
-                borderRadius: 999,
-                padding: "10px 16px",
-                fontWeight: 700,
-                cursor: input.trim() ? "pointer" : "not-allowed",
-                fontSize: 16,
-                minHeight: 40,
-              }}
-              title="▶ Play"
-            >
-              ▶ Play
-            </button>
-            <button
-              type="button"
-              onClick={onStop}
-              disabled={!playing}
-              style={{
-                background: "transparent",
-                color: T.gold,
-                border: `1px solid ${T.border}`,
-                borderRadius: 999,
-                padding: "8px 12px",
-                fontWeight: 700,
-                cursor: playing ? "pointer" : "not-allowed",
-                minHeight: 40,
-                fontSize: 14,
-              }}
-              title="⏸ Stop"
-            >
-              ⏸ Stop
-            </button>
-          </form>
+          
+          {/* Pill Bar Picker (single-line, horizontal scroll) */}
+<div
+  style={{
+    overflowX: "auto",
+    WebkitOverflowScrolling: "touch",
+    paddingBottom: 6, // helps iOS scrollbar overlap
+    marginInline: -2, // lets inner padding breathe
+  }}
+>
+  {/* hide scrollbar */}
+  <style>{`
+    .soh-pillbar { scrollbar-width: none; -ms-overflow-style: none; }
+    .soh-pillbar::-webkit-scrollbar { display: none; }
+  `}</style>
 
-          {/* Caption canvas */}
-          <div
-            style={{
-              display: "grid",
-              justifyContent: "center",
-              paddingTop: 6,
-            }}
-          >
-            <canvas
-              ref={captionCanvasRef}
-              width={360}
-              height={48}
-              style={{ width: 360, height: 48, display: "block" }}
-              aria-label="Chord progression caption"
-            />
-          </div>
+  <div
+    className="soh-pillbar"
+    style={{
+      display: "flex",
+      flexWrap: "nowrap",
+      gap: 8,
+      paddingInline: 2,
+      overflowX: "auto",
+    }}
+  >
+    {CINEMATIC_MOTIONS.map((m) => {
+      const active = m.id === selectedMotionId;
+
+      return (
+        <button
+          key={m.id}
+          type="button"
+          onClick={() => {
+            if (m.id === selectedMotionId) return;
+
+            setSelectedMotionId(m.id);
+
+            // If playing: switch immediately (visual restart + new audio)
+            // Audio from previous may ring out (by design).
+            if (playing) {
+              // restart after selection updates so chords recompute
+              setTimeout(() => restartPlayback(), 0);
+            }
+          }}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+            minWidth: "max-content",
+overflow: "visible",
+
+            borderRadius: 999,
+            padding: "6px 12px",
+            fontSize: 13,
+            lineHeight: 1.2,
+            fontWeight: 800,
+
+            border: "none",
+            cursor: "pointer",
+
+            background: active
+  ? "rgba(17,24,39,0.92)"
+  : "rgba(230,235,242,0.08)",
+            color: active ? "#fff" : T.text,
+            boxShadow: active
+  ? "0 0 0 1px rgba(235,207,122,0.35)"
+  : `0 0 0 1px ${T.border}`,
+            opacity: playing && !active ? 0.6 : 1,
+          }}
+          aria-pressed={active}
+          title={m.title}
+        >
+          <span style={{ fontSize: 14, lineHeight: 1 }}>{m.emoji || "•"}</span>
+<span
+  style={{
+    display: "inline-block",
+    lineHeight: 1.2,
+  }}
+>
+  {m.title}
+</span>
+        </button>
+      );
+    })}
+  </div>
+</div>
+
+  {/* Custom input (only when Custom selected) */}
+  {isCustom && (
+    <input
+      value={input}
+      onChange={(e) => setInput(e.target.value)}
+      onKeyDown={(e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    if (!playing && input.trim()) onPlay();
+  }
+}}
+
+      placeholder="C | Am | F | G7"
+      style={{
+        boxSizing: "border-box",
+        width: "100%",
+        background: "#0F1821",
+        color: T.gold,
+        border: `1px solid ${T.border}`,
+        borderRadius: 8,
+        padding: "10px 12px",
+        fontSize: 16,
+        fontFamily:
+          'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace',
+        fontVariantNumeric: "tabular-nums",
+      }}
+      aria-label="Enter chords"
+    />
+  )}
+
+  {/* Play / Stop */}
+  <div
+    style={{
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      justifyContent: "center",
+      flexWrap: "wrap",
+    }}
+  >
+    <button
+      type="button"
+      onClick={() => {
+  if (playing) return;
+  if (isCustom && !input.trim()) return;
+  
+  onPlay();
+}}
+      style={{
+        background: (!playing && (!isCustom || input.trim()))
+          ? T.gold
+          : "#1a2430",
+        color: (!playing && (!isCustom || input.trim()))
+          ? "#081019"
+          : T.muted,
+        border: "none",
+        borderRadius: 999,
+        padding: "10px 16px",
+        fontWeight: 700,
+        cursor: (!playing && (!isCustom || input.trim())) ? "pointer" : "not-allowed",
+        fontSize: 16,
+        minHeight: 40,
+      }}
+      title="▶ Play"
+    >
+      ▶ Play
+    </button>
+
+    <button
+      type="button"
+      onClick={onStop}
+      disabled={!playing}
+      style={{
+        background: "transparent",
+        color: T.gold,
+        border: `1px solid ${T.border}`,
+        borderRadius: 999,
+        padding: "8px 12px",
+        fontWeight: 700,
+        cursor: playing ? "pointer" : "not-allowed",
+        minHeight: 40,
+        fontSize: 14,
+      }}
+      title="⏸ Stop"
+    >
+      ⏸ Stop
+    </button>
+  </div>
+
+
+          {/* Caption canvas (only while playing) */}
+{playing && (
+  <div
+    style={{
+      display: "grid",
+      justifyContent: "center",
+      paddingTop: 6,
+    }}
+  >
+    <canvas
+      ref={captionCanvasRef}
+      width={360}
+      height={48}
+      style={{ width: 360, height: 48, display: "block" }}
+      aria-label="Chord progression caption"
+    />
+  </div>
+)}
 
           {/* Circle */}
 <div
@@ -1171,21 +1217,7 @@ a.remove();
       </filter>
     </defs>
 
-    {/* Ring */}
-    {vizMode === "circle" && (
-      <circle
-        cx="50"
-        cy="50"
-        r="36"
-        stroke={
-          bg === "dark"
-            ? "rgba(230,235,242,0.15)"
-            : "rgba(0,0,0,0.12)"
-        }
-        strokeWidth="2"
-        fill="none"
-      />
-    )}
+    
 
     {/* Final constellation — only when stopped (LIVE) */}
     {!playing &&
@@ -1193,7 +1225,7 @@ a.remove();
       finalPaths.map((d, i) => {
         const { stroke } = getChordColor(
           chords[i % chords.length],
-          bg
+          "dark"
         );
         return (
           <path
@@ -1214,11 +1246,11 @@ a.remove();
     {currentPolygon &&
       playing &&
       (() => {
-        const { stroke, fill } = getChordColor(chords[stepIdx], bg);
+        const { stroke, fill } = getChordColor(chords[stepIdx], "dark");
         return (
           <path
             d={currentPolygon}
-            fill={vizMode === "constellation" ? "none" : fill}
+            fill="none"
             stroke={stroke}
             strokeWidth={1.8}
             strokeLinecap="round"
@@ -1228,238 +1260,41 @@ a.remove();
         );
       })()}
 
-    {/* Nodes + labels */}
-    {vizMode === "circle" && (
-      <>
-        {(() => {
-          const activeChord = playing ? chords[stepIdx] : undefined;
-          const activeChordColor = activeChord
-            ? getChordColor(activeChord, bg).stroke
-            : T.gold;
-
-          return (
-            <>
-              {/* Nodes (with strong pulsing root, in chord color) */}
-              {Array.from({ length: 12 }, (_, i) => {
-                const p = nodePosition(i, 36);
-                const isRoot = playing && highlightRoot === i;
-
-                const baseR = 1.6;
-                const pulse =
-                  isRoot && phase != null
-                    ? baseR +
-                      2.4 * Math.pow(Math.sin(phase * Math.PI), 2)
-                    : baseR;
-
-                const fillColor = isRoot ? activeChordColor : T.text;
-
-                return (
-                  <circle
-                    key={`node-${i}`}
-                    cx={p.x}
-                    cy={p.y}
-                    r={pulse}
-                    fill={fillColor}
-                    fillOpacity={isRoot ? 1 : 0.25}
-                    filter={isRoot ? "url(#vt-glow)" : undefined}
-                  />
-                );
-              })}
-
-              {/* Labels (all when idle, root-only when playing) */}
-              {Array.from({ length: 12 }, (_, i) => {
-                const p = nodePosition(i, 36);
-                const lp = labelPlacement(i, p);
-
-                const showThisLabel =
-                  !playing ||
-                  highlightRoot == null ||
-                  highlightRoot === i;
-
-                if (!showThisLabel) return null;
-
-                return (
-                  <text
-                    key={`label-${i}`}
-                    x={lp.x}
-                    y={lp.y}
-                    textAnchor={lp.anchor}
-                    dominantBaseline={lp.baseline}
-                    fontSize="4"
-                    fill={T.text}
-                    style={{
-                      userSelect: "none",
-                      pointerEvents: "none",
-                    }}
-                  >
-                    {CHROMA_LABELS[i]}
-                  </text>
-                );
-              })}
-            </>
-          );
-        })()}
-      </>
-    )}
+    
   </svg>
 </div>
 
           {/* Bottom controls */}
-          <div
-            style={{ display: "grid", gap: 10, paddingInline: 6 }}
-          >
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                justifyContent: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              <button
-                onClick={() => setInput(DEFAULT_PROG)}
-                style={{
-                  background: "transparent",
-                  color: T.text,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 999,
-                  padding: "8px 12px",
-                  fontWeight: 600,
-                  fontSize: 14,
-                }}
-              >
-                Preset
-              </button>
-
-              <button
-                onClick={() => setBg((m) => (m === "dark"
-                  ? "light"
-                  : "dark"))}
-                style={{
-                  background: "transparent",
-                  color: T.text,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 999,
-                  padding: "8px 12px",
-                  fontWeight: 600,
-                  fontSize: 14,
-                }}
-                title="Toggle theme"
-              >
-                {bg === "dark" ? "Light" : "Dark"}
-              </button>
-
-              <button
-                onClick={onDownloadVideo}
-                disabled={isExporting}
-                style={{
-                  background: "transparent",
-                  color: isExporting ? T.muted : T.text,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 999,
-                  padding: "8px 12px",
-                  fontWeight: 600,
-                  fontSize: 14,
-                  cursor: isExporting ? "not-allowed" : "pointer",
-                }}
-                title="Download video"
-              >
-                {isExporting ? "⏺ Exporting…" : "💾 Download"}
-              </button>
-
-              {/* Visualization segmented */}
-              <div
-                role="tablist"
-                aria-label="Visualization mode"
-                style={{
-                  display: "inline-flex",
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 999,
-                  padding: 4,
-                  gap: 4,
-                }}
-              >
-                {(["circle", "constellation"] as VizMode[]).map((v) => {
-                  const active = vizMode === v;
-                  return (
-                    <button
-                      key={v}
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => setVizMode(v)}
-                      style={{
-                        border: "none",
-                        borderRadius: 999,
-                        padding: "8px 12px",
-                        background: active
-                          ? "rgba(255,255,255,0.12)"
-                          : "transparent",
-                        color: T.text,
-                        fontSize: 14,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {v === "circle" ? "Circle" : "Constellation"}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Playback + Tempo segmented */}
-<div
-  style={{
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    alignItems: "center",
-  }}
->
-  {/* Playback segmented */}
-  <div
-    role="tablist"
-    aria-label="Playback mode"
-    style={{
-      display: "inline-flex",
-      border: `1px solid ${T.border}`,
-      borderRadius: 999,
-      padding: 4,
-      gap: 4,
-    }}
-  >
-    {(["chords", "arpeggio"] as PlayMode[]).map((v) => {
-      const active = playMode === v;
-      return (
-        <button
-          key={v}
-          role="tab"
-          aria-selected={active}
-          onClick={() => setPlayMode(v)}
-          style={{
-            border: "none",
-            borderRadius: 999,
-            padding: "8px 12px",
-            background: active
-              ? "rgba(255,255,255,0.12)"
-              : "transparent",
-            color: T.text,
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          {v === "chords" ? "Chords" : "Arpeggio"}
-        </button>
-      );
-    })}
+<div style={{ display: "grid", gap: 10, paddingInline: 6 }}>
+  {/* Row: Download */}
+  <div style={{ display: "flex", justifyContent: "center" }}>
+    <button
+      onClick={onDownloadVideo}
+      disabled={isExporting}
+      style={{
+        background: "transparent",
+        color: isExporting ? T.muted : T.text,
+        border: `1px solid ${T.border}`,
+        borderRadius: 999,
+        padding: "8px 12px",
+        fontWeight: 600,
+        fontSize: 14,
+        cursor: isExporting ? "not-allowed" : "pointer",
+      }}
+      title="Download video"
+    >
+      {isExporting ? "⏺ Exporting…" : "💾 Download"}
+    </button>
   </div>
 
-  {/* Tempo segmented */}
+  {/* Row: Tempo */}
   <div
     role="tablist"
     aria-label="Tempo"
     style={{
       display: "inline-flex",
+      justifyContent: "center",
+      alignSelf: "center",
       border: `1px solid ${T.border}`,
       borderRadius: 999,
       padding: 4,
@@ -1478,9 +1313,7 @@ a.remove();
             border: "none",
             borderRadius: 999,
             padding: "6px 10px",
-            background: active
-              ? "rgba(255,255,255,0.12)"
-              : "transparent",
+            background: active ? "rgba(255,255,255,0.12)" : "transparent",
             color: T.text,
             fontSize: 12,
             fontWeight: 600,
@@ -1493,8 +1326,6 @@ a.remove();
     })}
   </div>
 </div>
-            </div>
-          </div>
         </section>
       </main>
     </div>
