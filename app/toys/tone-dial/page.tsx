@@ -587,7 +587,54 @@ export default function ToneDialPage() {
       }
       .vt-actions { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; column-gap:10px; row-gap:8px; }
       .minw0 { min-width:0 !important; }
-    `;
+    /* ToneDial: make ToyNavHeader arrows visible on white */
+[data-tonedial="1"] a,
+[data-tonedial="1"] button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ToneDial: high-contrast ToyNavHeader arrows on white */
+[data-tonedial="1"] a[aria-label*="Previous"],
+[data-tonedial="1"] a[aria-label*="Next"],
+[data-tonedial="1"] button[aria-label*="Previous"],
+[data-tonedial="1"] button[aria-label*="Next"] {
+  background: #e5e7eb !important;
+  border: 2px solid #d1d5db !important;    /* visible border */
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6) !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+}
+
+[data-tonedial="1"] a[aria-label*="Previous"] svg,
+[data-tonedial="1"] a[aria-label*="Next"] svg,
+[data-tonedial="1"] button[aria-label*="Previous"] svg,
+[data-tonedial="1"] button[aria-label*="Next"] svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+  stroke-width: 2.6 !important;
+  opacity: 1 !important;
+}
+  [data-tonedial="1"] a[aria-label*="Previous"]:active,
+[data-tonedial="1"] a[aria-label*="Next"]:active,
+[data-tonedial="1"] button[aria-label*="Previous"]:active,
+[data-tonedial="1"] button[aria-label*="Next"]:active {
+  transform: scale(0.96);
+  box-shadow:
+    0 6px 14px rgba(0, 0, 0, 0.18),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+}
+    /* ToneDial: darker header strip so arrows read */
+[data-tonedial="1"] header,
+[data-tonedial="1"] .toy-nav,
+[data-tonedial="1"] .toy-nav-header {
+  background: #f1f3f5 !important; /* subtle neutral gray */
+  border-bottom: 1px solid #d1d5db !important;
+}
+      `;
     const el = document.createElement("style");
     el.textContent = css;
     document.head.appendChild(el);
@@ -2100,7 +2147,10 @@ ctx.scale(s * SCALE, s * SCALE);
   const KEY_RADIUS = 10.4;
 
   return (
-    <div style={{ minHeight: "100vh", background: IOS.pageBg, color: IOS.text, overflowX: "hidden" }}>
+  <div
+    data-tonedial="1"
+    style={{ minHeight: "100vh", background: IOS.pageBg, color: IOS.text, overflowX: "hidden" }}
+  >
       <main
         className="vt-card"
         style={{ width: "100%", margin: "0 auto", padding: 12, boxSizing: "border-box", maxWidth: 520 }}
