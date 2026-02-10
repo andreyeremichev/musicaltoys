@@ -1963,7 +1963,7 @@ const tokenToCharIdxE: number[] = new Array(tokens.length).fill(-1);
         }
         if (/[0-9]/.test(ch)) {
           // special: 0 becomes rest when zeroPolicy=rest
-          if (ch === "0" && zeroPolicy === "rest" && tok.kind !== "rest") {
+          if (ch === "0" && zeroPolicy === "rest") {
             ci++;
             continue;
           }
