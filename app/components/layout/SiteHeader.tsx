@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
    Primary navigation (entry points)
 ========================= */
 const PRIMARY_NAV = [
+  { href: "/gestures", label: "Gestures" },
   { href: "/toys/text-to-tone", label: "Toys" },
   { href: "/cards/postcard/birthday", label: "Postcards" },
 ];
@@ -55,8 +56,10 @@ export function SiteHeader() {
                   href={item.href}
                   className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium transition ${
                     active
-                      ? "bg-slate-900 text-slate-50 shadow-sm"
-                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+  ? "bg-slate-900 text-slate-50 shadow-sm"
+  : item.label === "Gestures"
+    ? "text-slate-900 hover:bg-slate-100 hover:text-slate-900"
+    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                   }`}
                 >
                   {item.label}
