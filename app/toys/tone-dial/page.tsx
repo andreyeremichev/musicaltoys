@@ -22,7 +22,11 @@ const IOS = {
   major: "#B08900", // Brighter (BbMajor) — use your previous “gold”
   minor: "#1E7B45", // Darker (Cminor) — use your previous “minor”
 };
-
+const STAGE = {
+  bg: "#0b0f14",          // deep velvet
+  vignette: "#000000",   // for radial fade
+  halo: "rgba(176, 137, 0, 0.35)", // gold halo (matches IOS.major)
+};
 type TrailMode = "pulse" | "glow" | "confetti";
 
 /* =========================
@@ -627,12 +631,23 @@ export default function ToneDialPage() {
     0 6px 14px rgba(0, 0, 0, 0.18),
     inset 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
 }
-    /* ToneDial: darker header strip so arrows read */
+   /* ToneDial: header on dark velvet */
 [data-tonedial="1"] header,
 [data-tonedial="1"] .toy-nav,
 [data-tonedial="1"] .toy-nav-header {
-  background: #f1f3f5 !important; /* subtle neutral gray */
-  border-bottom: 1px solid #d1d5db !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12) !important;
+  backdrop-filter: blur(6px);
+}
+  /* ToneDial: dark velvet vignette */
+[data-tonedial="1"] {
+  background:
+    radial-gradient(
+      120% 120% at 50% 10%,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(0, 0, 0, 0.65) 55%,
+      #000000 100%
+    );
 }
       `;
     const el = document.createElement("style");
@@ -1511,6 +1526,21 @@ setShowDegreesStrip(true);
       const liveH = Math.max(2, Math.floor(rect.height));
       const clone = svgEl.cloneNode(true) as SVGSVGElement;
 
+// EXPORT SAFETY: iOS can fail to load SVG-as-image when root has CSS filter/drop-shadow
+try {
+  clone.removeAttribute("style");
+  // keep overflow visible if you need it
+  clone.style.overflow = "visible";
+} catch {}
+try {
+  clone.querySelectorAll("[style]").forEach((el) => {
+    const s = (el as HTMLElement).getAttribute("style") || "";
+    if (s.includes("drop-shadow") || s.includes("filter:")) {
+      (el as HTMLElement).setAttribute("style", s.replace(/filter:[^;]+;?/g, ""));
+    }
+  });
+} catch {}
+
       // remove overlay paths + embers + pulse
       clone.querySelectorAll('[data-ov="1"]').forEach((p) => p.remove());
       const embersClone = clone.querySelector("#embers");
@@ -1747,23 +1777,24 @@ if (tok.kind === "rest") continue;
         const strokeWidth = trailMode.startsWith("glow") ? 1.15 : 1.4;
 
         const filterBlock = `
-          <defs>
-            <filter id="vt-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b1" />
-              <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="b2" />
-              <feMerge>
-                <feMergeNode in="b2" />
-                <feMergeNode in="b1" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-        `;
+  <defs>
+    <filter id="vt-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b1" />
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="b2" />
+      <feMerge>
+        <feMergeNode in="b2" />
+        <feMergeNode in="b1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+`;
         return `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 115" width="${liveW}" height="${liveH}" shape-rendering="geometricPrecision">
             ${trailMode.startsWith("glow") ? filterBlock : ""}
             ${path ? `<path d="${path}" fill="none" stroke="${activeColor}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" ${trailMode.startsWith("glow") ? `filter="url(#vt-glow)"` : ""} />` : ""}
-          </svg>
+          
+            </svg>
         `;
       }
 
@@ -1900,6 +1931,54 @@ ctx.scale(s * SCALE, s * SCALE);
       }
 
       const srcStrE = (raw || "").toUpperCase();
+      // Map each token index -> character index in srcStrE (so export can highlight +/#/* too)
+const tokenToCharIdxE: number[] = new Array(tokens.length).fill(-1);
+{
+  let ci = 0;
+  for (let ti = 0; ti < tokens.length; ti++) {
+    const tok = tokens[ti];
+    // advance to next non-space character
+    while (ci < srcStrE.length && srcStrE[ci] === " ") ci++;
+
+    // find the next matching character for this token
+    while (ci < srcStrE.length) {
+      const ch = srcStrE[ci];
+
+      if (ch === " ") {
+        ci++;
+        continue;
+      }
+
+      // token matching
+      if (tok.kind === "intro" && ch === "+") break;
+      if (tok.kind === "resolve" && ch === "#") break;
+      if (tok.kind === "toggle" && ch === "*") break;
+      if (tok.kind === "rest" && ch === "-") break;
+
+      if (tok.kind === "deg" || tok.kind === "chroma") {
+        if (/[A-Z]/.test(ch)) {
+          if ((tok as any).srcChar && (tok as any).srcChar === ch) break;
+          // letters should generally match srcChar; if not present, still accept
+          if (!(tok as any).srcChar) break;
+        }
+        if (/[0-9]/.test(ch)) {
+          // special: 0 becomes rest when zeroPolicy=rest
+          if (ch === "0" && zeroPolicy === "rest" && tok.kind !== "rest") {
+            ci++;
+            continue;
+          }
+          break;
+        }
+      }
+
+      // not matching, skip this char
+      ci++;
+    }
+
+    tokenToCharIdxE[ti] = ci < srcStrE.length ? ci : -1;
+    if (ci < srcStrE.length) ci++;
+  }
+}
       const playableE = tokens.filter((t) => t.kind === "deg" || t.kind === "chroma");
       const p2cE: number[] = [];
       {
@@ -1921,7 +2000,7 @@ ctx.scale(s * SCALE, s * SCALE);
         }
       }
 
-      function drawExportCaption(ctx: CanvasRenderingContext2D, activePlayable: number, showBottom: boolean) {
+      function drawExportCaption(ctx: CanvasRenderingContext2D, activeCharIndex: number, showBottom: boolean) {
         const src = (raw || "").toUpperCase().split("");
         const playable = tokens.filter((t) => t.kind === "deg" || t.kind === "chroma");
 
@@ -1968,7 +2047,7 @@ ctx.scale(s * SCALE, s * SCALE);
         const totalW = widths.reduce((a, b) => a + b, 0);
         let x = capX + Math.max(0, (capW - totalW) / 2);
 
-        const activeChar = activePlayable >= 0 && activePlayable < p2cE.length ? p2cE[activePlayable] : -1;
+        const activeChar = activeCharIndex;
 
         // top line
         for (let i = 0; i < disp.length; i++) {
@@ -2066,15 +2145,56 @@ ctx.scale(s * SCALE, s * SCALE);
         const dtSec = lastTs ? (nowTs - lastTs) / 1000 : 1 / FPS;
         lastTs = nowTs;
 
-        c.fillStyle = IOS.pageBg;
-        c.fillRect(0, 0, canvas.width, canvas.height);
+        // --- STAGE: velvet background (match Live) ---
+c.fillStyle = STAGE.bg;
+c.fillRect(0, 0, canvas.width, canvas.height);
 
-        c.drawImage(bgImg, 0, 0, liveW, liveH, drawX * SCALE, drawY * SCALE, drawW * SCALE, drawH * SCALE);
+// Vignette / soft top light (match your CSS radial)
+{
+  const cx = canvas.width * 0.5;
+  const cy = canvas.height * 0.10;
+  const r0 = 0;
+  const r1 = Math.max(canvas.width, canvas.height) * 0.85;
+
+  const g = c.createRadialGradient(cx, cy, r0, cx, cy, r1);
+  g.addColorStop(0.0, "rgba(255,255,255,0.06)");
+  g.addColorStop(0.55, "rgba(0,0,0,0.65)");
+  g.addColorStop(1.0, "rgba(0,0,0,1)");
+
+  c.fillStyle = g;
+  c.fillRect(0, 0, canvas.width, canvas.height);
+}
+// --- STAGE: gold halo behind keypad (match Live) ---
+{
+  const cx = (drawX + drawW / 2) * SCALE;
+  const cy = (drawY + drawH / 2) * SCALE;
+
+  // Big soft halo radius
+  const rOuter = Math.max(drawW, drawH) * SCALE * 0.72;
+  const rInner = rOuter * 0.12;
+
+  const halo = c.createRadialGradient(cx, cy, rInner, cx, cy, rOuter);
+  halo.addColorStop(0.00, "rgba(176, 137, 0, 0.35)");
+  halo.addColorStop(0.35, "rgba(176, 137, 0, 0.18)");
+  halo.addColorStop(0.55, "rgba(176, 137, 0, 0.06)");
+  halo.addColorStop(0.70, "rgba(176, 137, 0, 0.00)");
+
+  c.fillStyle = halo;
+  c.fillRect(0, 0, canvas.width, canvas.height);
+}
+// Optional: subtle stage shadow under keypad
+c.save();
+c.shadowColor = "rgba(0,0,0,0.55)";
+c.shadowBlur = 40 * SCALE;
+c.shadowOffsetY = 18 * SCALE;
+c.drawImage(bgImg, 0, 0, liveW, liveH, drawX * SCALE, drawY * SCALE, drawW * SCALE, drawH * SCALE);
+c.restore();
+        
 
         if (trailMode === "glow") {
-          const ovImg = overlayImgs[i];
-          if (ovImg) c.drawImage(ovImg, 0, 0, liveW, liveH, drawX * SCALE, drawY * SCALE, drawW * SCALE, drawH * SCALE);
-        }
+  const ovImg = overlayImgs[i];
+  if (ovImg) c.drawImage(ovImg, 0, 0, liveW, liveH, drawX * SCALE, drawY * SCALE, drawW * SCALE, drawH * SCALE);
+}
 
         // EXPORT visuals:
         // - "pulse" => draw pulse each frame
@@ -2096,9 +2216,9 @@ ctx.scale(s * SCALE, s * SCALE);
           prevStep = i;
         }
 
-        const activePlayableIdx = Math.max(0, playedIdxE - 1);
-        const showBottomThisFrame = SHOW_DEGREES_CAPTION_LINE;
-        drawExportCaption(c, activePlayableIdx, showBottomThisFrame);
+        const activeCharIdx = tokenToCharIdxE[i] ?? -1;
+const showBottomThisFrame = SHOW_DEGREES_CAPTION_LINE;
+drawExportCaption(c, activeCharIdx, showBottomThisFrame);
         updateAndDrawConfetti(c, dtSec);
 
         if (elapsed < TOTAL_MS_FIXED) requestAnimationFrame(loop);
@@ -2148,9 +2268,14 @@ ctx.scale(s * SCALE, s * SCALE);
 
   return (
   <div
-    data-tonedial="1"
-    style={{ minHeight: "100vh", background: IOS.pageBg, color: IOS.text, overflowX: "hidden" }}
-  >
+  data-tonedial="1"
+  style={{
+    minHeight: "100vh",
+    background: STAGE.bg,
+    color: IOS.text,
+    overflowX: "hidden",
+  }}
+>
       <main
         className="vt-card"
         style={{ width: "100%", margin: "0 auto", padding: 12, boxSizing: "border-box", maxWidth: 520 }}
@@ -2230,7 +2355,7 @@ ctx.scale(s * SCALE, s * SCALE);
               fontSize: 14,
               lineHeight: 1.3,
               fontWeight: 500,
-              color: IOS.muted,
+              color: "rgba(255,255,255,0.75)",
               letterSpacing: 0.2,
             }}
           >
@@ -2342,6 +2467,29 @@ enterKeyHint="done"
             }}
           >
             <div style={{ position: "relative", width: 360, height: 420 }}>
+  {/* Gold halo (background) */}
+  <div
+    aria-hidden="true"
+    style={{
+      position: "absolute",
+      inset: -40,
+      borderRadius: "50%",
+      background: `radial-gradient(
+        circle at center,
+        ${STAGE.halo} 0%,
+        rgba(176, 137, 0, 0.18) 35%,
+        rgba(176, 137, 0, 0.06) 55%,
+        transparent 70%
+      )`,
+      filter: "blur(18px)",
+      zIndex: 0,
+      pointerEvents: "none",
+    }}
+  />
+
+  {/* Foreground: keep your existing SVG + call button here */}
+  <div style={{ position: "relative", zIndex: 1 }}>
+  
               <svg
                 ref={svgRef}
                 viewBox="0 0 100 115"
@@ -2419,12 +2567,20 @@ enterKeyHint="done"
                 {/* Call button visual (SVG only; click handled by HTML overlay) */}
                 {/* Call button visual (SVG only; click handled by HTML overlay) */}
 <g style={{ pointerEvents: "none" }}>
-  <circle cx={50} cy={104} r={10.2} fill={IOS.green} />
+  <circle cx={50} cy={104} r={10.2} fill={IOS.major} />
   <path
     d="M46.3 100.6c.6-1 1.3-1.5 2.1-1.5.7 0 1.4.3 2.1.9l1.3 1.2c.3.3.3.7.1 1.1l-1.1 1.9c.7 1.2 1.8 2.4 3 3l1.9-1.1c.4-.2.8-.2 1.1.1l1.2 1.3c.6.7.9 1.4.9 2.1 0 .8-.5 1.5-1.5 2.1-.7.4-1.6.6-2.7.3-2.5-.6-5.3-3.4-7-6-1.1-1.8-1.8-3.6-1.9-5.1-.1-1.1.1-2 .5-2.7z"
     fill="#FFFFFF"
   />
 </g>
+<circle
+  cx={50}
+  cy={104}
+  r={9.4}
+  fill="none"
+  stroke="rgba(255,255,255,0.35)"
+  strokeWidth={0.8}
+/>
 
                 {/* Lines / Glow overlay (single) */}
                 {trailMode === "glow" && overlayPath ? (
@@ -2459,6 +2615,8 @@ enterKeyHint="done"
                 ) : null}
               </svg>
 
+
+
               {/* HTML overlay button matching call circle */}
               <button
                 type="button"
@@ -2479,8 +2637,10 @@ enterKeyHint="done"
                   cursor: isRunning || !raw.trim() ? "not-allowed" : "pointer",
                 }}
               />
-            </div>
+              </div>
           </div>
+            </div>
+           
 
           {/* Actions */}
           <div className="vt-actions minw0" aria-label="Actions">
