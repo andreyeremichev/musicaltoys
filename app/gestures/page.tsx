@@ -579,14 +579,7 @@ useEffect(() => {
     });
 
     // Download
-    const a = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    a.href = url;
-    a.download = `${gesture.id}-${voiceKey}`.toLowerCase() + ".webm";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    await uploadAndConvertToMp4(blob, `${gesture.id}-${voiceKey}`.toLowerCase());
 
     setToast("Downloaded");
   } catch (err) {
@@ -594,7 +587,38 @@ useEffect(() => {
     setToast("Video export failed");
   }
 }
+async function uploadAndConvertToMp4(webm: Blob, name: string) {
+  setToast("Converting to MP4…");
 
+  const res = await fetch("/api/convert-webm-to-mp4", {
+    method: "POST",
+    headers: {
+      // Your API route detects input format from this header
+      "Content-Type": "video/webm",
+    },
+    body: webm,
+  });
+
+  if (!res.ok) {
+    // Read server stderr message (ffmpeg errors) so you can debug quickly
+    const errText = await res.text().catch(() => "");
+    console.error("MP4 conversion failed:", errText);
+    throw new Error("MP4 conversion failed");
+  }
+
+  const mp4Blob = await res.blob();
+
+  const a = document.createElement("a");
+  const url = URL.createObjectURL(mp4Blob);
+  a.href = url;
+  a.download = `${name}.mp4`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  setToast("MP4 downloaded");
+}
 // ---------- helpers (export) ----------
 
 function pickMimeType(): string | null {
