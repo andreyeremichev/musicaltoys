@@ -55,18 +55,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
 },
 
     // Hubs
-    {
-      url: `${base}/toys`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    {
-      url: `${base}/cards`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
+{
+  url: `${base}/gestures`,
+  lastModified: now,
+  changeFrequency: "weekly",
+  priority: 0.95,
+},
+{
+  url: `${base}/toys`,
+  lastModified: now,
+  changeFrequency: "weekly",
+  priority: 0.9,
+},
+{
+  url: `${base}/cards`,
+  lastModified: now,
+  changeFrequency: "weekly",
+  priority: 0.9,
+},
 
     // Cards / Postcards
     {
